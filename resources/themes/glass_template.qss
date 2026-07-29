@@ -153,6 +153,10 @@ QToolButton#iconButton:pressed, QPushButton#iconButton:pressed,
 QPushButton#clearButton:pressed {
     background: {{accent_pressed}}; color: {{accent_text}};
 }
+/* v0.7.1：工具条"历史"钮可勾选（面板展开时保持激活态） */
+QPushButton#iconButton:checked {
+    background: {{accent}}; color: {{accent_text}}; border-color: {{accent}};
+}
 QToolButton#iconButton:disabled, QPushButton#iconButton:disabled,
 QPushButton#clearButton:disabled {
     background: {{card_bg}}; color: {{sub_text}};
@@ -204,6 +208,21 @@ QListWidget#settingsNav {
 QListWidget#settingsNav::item { padding: 10px 16px; margin: 2px 8px; border-radius: {{radius_control}}px; }
 /* Phase 7-fix1：设置导航选中态改苹果式"半透明灰底 + 左条"，区别于普通 list 实心选中 */
 QListWidget#settingsNav::item:selected {
+    background: {{selection_bg}}; color: {{text}};
+    border-left: 3px solid {{selection_left_bar}};
+}
+/* ---- v0.7.1 翻译服务列表：项高加大 + 项间留白 + 选中态强化 ----
+   选中 = 半透明灰底（浅 0.10 / 深 0.16，ThemeManager selection_bg 令牌）
+   + 左侧 3px 主色竖条；加粗由 SettingsWindow 用 item 字体实现
+   （QSS ::item 不支持 font-weight）。平时项也留 3px 透明左条，
+   选中切换时文字零位移。 */
+QListWidget#providerList::item {
+    min-height: 34px; padding: 6px 10px; margin: 3px 6px;
+    border-radius: {{radius_control}}px;
+    border-left: 3px solid transparent;
+}
+QListWidget#providerList::item:hover { background: {{glass_surface_fake}}; }
+QListWidget#providerList::item:selected {
     background: {{selection_bg}}; color: {{text}};
     border-left: 3px solid {{selection_left_bar}};
 }

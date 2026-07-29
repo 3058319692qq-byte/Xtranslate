@@ -3,11 +3,13 @@
 unfinished <translation> simply receives its <source> text verbatim.
 Run after lupdate whenever new strings appear (idempotent)."""
 
+import os
 import sys
 import xml.etree.ElementTree as ET
 
 path = sys.argv[1] if len(sys.argv) > 1 else \
-    r"e:\Transform\XTranslate\resources\i18n\xtranslate_zh_CN.ts"
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "resources", "i18n", "xtranslate_zh_CN.ts")
 
 tree = ET.parse(path)
 root = tree.getroot()

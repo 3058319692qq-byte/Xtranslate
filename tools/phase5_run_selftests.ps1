@@ -7,7 +7,7 @@
 # ===========================================================================
 [CmdletBinding()]
 param(
-    [string]$Exe = 'e:\Transform\XTranslate\build\bin\XTranslate.exe',
+    [string]$Exe = (Join-Path (Split-Path -Parent $PSScriptRoot) 'build\bin\XTranslate.exe'),
     # 默认列表随 Phase 5 推进扩充；第 6 步起 15 项全跑。
     [string[]]$Modes = @(
         'env','ocr','translate','capture','overlay',

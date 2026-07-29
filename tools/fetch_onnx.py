@@ -12,7 +12,8 @@ import zipfile
 
 URL = ("https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/"
        "1.27.1/microsoft.ml.onnxruntime.1.27.1.nupkg")
-ROOT = r"e:\Transform\XTranslate\third_party\onnxruntime"
+ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "third_party", "onnxruntime")
 NUPKG = os.path.join(ROOT, "microsoft.ml.onnxruntime.1.27.1.nupkg")
 INC = os.path.join(ROOT, "include")
 LIB = os.path.join(ROOT, "lib")

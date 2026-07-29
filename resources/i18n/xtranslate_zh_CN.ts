@@ -25,11 +25,11 @@
     </message>
     <message>
         <source>拖动</source>
-        <translation type="unfinished"></translation>
+        <translation>拖动</translation>
     </message>
     <message>
         <source>按住拖动覆盖层</source>
-        <translation type="unfinished"></translation>
+        <translation>按住拖动覆盖层</translation>
     </message>
 </context>
 <context>
@@ -78,6 +78,16 @@
         <source>删除</source>
         <translation>删除</translation>
     </message>
+    <message>
+        <source>无匹配的历史记录</source>
+        <translation>无匹配的历史记录</translation>
+    </message>
+    <message>
+        <source>暂无历史记录
+（翻译成功后自动记录；离线占位结果不计入）</source>
+        <translation>暂无历史记录
+（翻译成功后自动记录；离线占位结果不计入）</translation>
+    </message>
 </context>
 <context>
     <name>HotkeyManager</name>
@@ -103,7 +113,7 @@
     </message>
     <message>
         <source>文本替换</source>
-        <translation type="unfinished"></translation>
+        <translation>文本替换</translation>
     </message>
 </context>
 <context>
@@ -222,19 +232,19 @@
     </message>
     <message>
         <source>工具(&amp;T)</source>
-        <translation>工具(&amp;T)</translation>
+        <translation type="vanished">工具(&amp;T)</translation>
     </message>
     <message>
         <source>设置…</source>
-        <translation>设置…</translation>
+        <translation type="vanished">设置…</translation>
     </message>
     <message>
         <source>视图(&amp;V)</source>
-        <translation>视图(&amp;V)</translation>
+        <translation type="vanished">视图(&amp;V)</translation>
     </message>
     <message>
         <source>历史侧栏</source>
-        <translation>历史侧栏</translation>
+        <translation type="vanished">历史侧栏</translation>
     </message>
     <message>
         <source>翻译中…</source>
@@ -298,35 +308,47 @@
     </message>
     <message>
         <source>已替换为译文（%1）</source>
-        <translation type="unfinished"></translation>
+        <translation>已替换为译文（%1）</translation>
     </message>
     <message>
         <source>替换失败：%1</source>
-        <translation type="unfinished"></translation>
+        <translation>替换失败：%1</translation>
     </message>
     <message>
         <source>⚠ 翻译服务不可达，已显示离线占位结果</source>
-        <translation type="unfinished"></translation>
+        <translation>⚠ 翻译服务不可达，已显示离线占位结果</translation>
     </message>
     <message>
         <source>⚠ 已用离线占位结果替换（翻译服务不可达）</source>
-        <translation type="unfinished"></translation>
+        <translation>⚠ 已用离线占位结果替换（翻译服务不可达）</translation>
     </message>
     <message>
         <source>⚠ 翻译服务不可达，已用离线占位结果替换 — 可在 设置→代理→系统代理 中检查</source>
-        <translation type="unfinished"></translation>
+        <translation>⚠ 翻译服务不可达，已用离线占位结果替换 — 可在 设置→代理→系统代理 中检查</translation>
     </message>
     <message>
         <source>自动检测：每次翻译仅识别源文中的主要语种；若源文混合多种语种，将只翻译第一种，建议手动选择源语言以获更准确结果。</source>
-        <translation type="unfinished"></translation>
+        <translation>自动检测：每次翻译仅识别源文中的主要语种；若源文混合多种语种，将只翻译第一种，建议手动选择源语言以获更准确结果。</translation>
     </message>
     <message>
         <source>清空</source>
-        <translation type="unfinished"></translation>
+        <translation>清空</translation>
     </message>
     <message>
         <source>清空输入</source>
-        <translation type="unfinished"></translation>
+        <translation>清空输入</translation>
+    </message>
+    <message>
+        <source>历史记录</source>
+        <translation type="unfinished">历史记录</translation>
+    </message>
+    <message>
+        <source>历史记录（展开/收起）</source>
+        <translation>历史记录（展开/收起）</translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation type="unfinished">设置</translation>
     </message>
 </context>
 <context>
@@ -382,7 +404,9 @@
         <source>⚠ 翻译服务不可达，已显示离线占位结果
 
 %1</source>
-        <translation type="unfinished"></translation>
+        <translation>⚠ 翻译服务不可达，已显示离线占位结果
+
+%1</translation>
     </message>
 </context>
 <context>
@@ -425,7 +449,7 @@
     </message>
     <message>
         <source>⚠ 翻译服务不可达，已显示离线占位结果</source>
-        <translation type="unfinished"></translation>
+        <translation>⚠ 翻译服务不可达，已显示离线占位结果</translation>
     </message>
 </context>
 <context>
@@ -652,11 +676,11 @@
     </message>
     <message>
         <source>中文嗓音</source>
-        <translation>中文嗓音</translation>
+        <translation type="vanished">中文嗓音</translation>
     </message>
     <message>
         <source>英文嗓音</source>
-        <translation>英文嗓音</translation>
+        <translation type="vanished">英文嗓音</translation>
     </message>
     <message>
         <source>测试朗读</source>
@@ -668,7 +692,7 @@
     </message>
     <message>
         <source>本机没有可用的语音引擎。</source>
-        <translation>本机没有可用的语音引擎。</translation>
+        <translation type="vanished">本机没有可用的语音引擎。</translation>
     </message>
     <message>
         <source>不使用代理</source>
@@ -730,163 +754,203 @@
     </message>
     <message>
         <source>插件</source>
-        <translation type="unfinished"></translation>
+        <translation>插件</translation>
     </message>
     <message>
         <source>开机启动（驻留托盘）</source>
-        <translation type="unfinished"></translation>
+        <translation>开机启动（驻留托盘）</translation>
     </message>
     <message>
         <source>通知</source>
-        <translation type="unfinished"></translation>
+        <translation>通知</translation>
     </message>
     <message>
         <source>启用气泡通知</source>
-        <translation type="unfinished"></translation>
+        <translation>启用气泡通知</translation>
     </message>
     <message>
         <source>总开关</source>
-        <translation type="unfinished"></translation>
+        <translation>总开关</translation>
     </message>
     <message>
         <source>截图 OCR 完成</source>
-        <translation type="unfinished"></translation>
+        <translation>截图 OCR 完成</translation>
     </message>
     <message>
         <source>截图翻译完成</source>
-        <translation type="unfinished"></translation>
+        <translation>截图翻译完成</translation>
     </message>
     <message>
         <source>划词翻译提示</source>
-        <translation type="unfinished"></translation>
+        <translation>划词翻译提示</translation>
     </message>
     <message>
         <source>文本替换结果</source>
-        <translation type="unfinished"></translation>
+        <translation>文本替换结果</translation>
     </message>
     <message>
         <source>系统 OCR（Windows.Media.Ocr）</source>
-        <translation type="unfinished"></translation>
+        <translation>系统 OCR（Windows.Media.Ocr）</translation>
     </message>
     <message>
         <source>本机无 C++/WinRT 头或未安装 OCR 语言包，请在 Windows 设置 → 时间和语言 → 语言 中添加 OCR 语言包</source>
-        <translation type="unfinished"></translation>
+        <translation>本机无 C++/WinRT 头或未安装 OCR 语言包，请在 Windows 设置 → 时间和语言 → 语言 中添加 OCR 语言包</translation>
     </message>
     <message>
         <source>系统 OCR 不依赖 ONNX 模型，启动更快；Paddle OCR 精度更高且支持坐标输出。切换立即生效，截图 OCR / 截图翻译 / 区域 OCR 共用此设置。</source>
-        <translation type="unfinished"></translation>
+        <translation>系统 OCR 不依赖 ONNX 模型，启动更快；Paddle OCR 精度更高且支持坐标输出。切换立即生效，截图 OCR / 截图翻译 / 区域 OCR 共用此设置。</translation>
     </message>
     <message>
         <source>插件目录下的每个子目录视为一个进程外翻译插件（plugin.exe|plugin.py|plugin.bat）。环境变量 XTRANSLATE_PLUGINS_DIR 完全取代默认路径 %APPDATA%\XTranslate\plugins\。</source>
-        <translation type="unfinished"></translation>
+        <translation>插件目录下的每个子目录视为一个进程外翻译插件（plugin.exe|plugin.py|plugin.bat）。环境变量 XTRANSLATE_PLUGINS_DIR 完全取代默认路径 %APPDATA%\XTranslate\plugins\。</translation>
     </message>
     <message>
         <source>当前插件目录</source>
-        <translation type="unfinished"></translation>
+        <translation>当前插件目录</translation>
     </message>
     <message>
         <source>重新扫描</source>
-        <translation type="unfinished"></translation>
+        <translation>重新扫描</translation>
     </message>
     <message>
         <source>扫描中…</source>
-        <translation type="unfinished"></translation>
+        <translation>扫描中…</translation>
     </message>
     <message>
         <source>发现 %1 个插件，%2 个可用</source>
-        <translation type="unfinished"></translation>
+        <translation>发现 %1 个插件，%2 个可用</translation>
     </message>
     <message>
         <source>点击「重新扫描」探测插件</source>
-        <translation type="unfinished"></translation>
+        <translation>点击「重新扫描」探测插件</translation>
     </message>
     <message>
         <source>（暂无插件，请把插件子目录放入上述路径）</source>
-        <translation type="unfinished"></translation>
+        <translation>（暂无插件，请把插件子目录放入上述路径）</translation>
     </message>
     <message>
         <source>✓ 可用  v%1</source>
-        <translation type="unfinished"></translation>
+        <translation>✓ 可用  v%1</translation>
     </message>
     <message>
         <source>✗ 不可用：%1</source>
-        <translation type="unfinished"></translation>
+        <translation>✗ 不可用：%1</translation>
     </message>
     <message>
         <source>总开关关闭时所有气泡通知都不显示；总开关开启时下方场景可单独控制。</source>
-        <translation type="unfinished"></translation>
+        <translation>总开关关闭时所有气泡通知都不显示；总开关开启时下方场景可单独控制。</translation>
     </message>
     <message>
         <source>翻译服务不可达提示</source>
-        <translation type="unfinished"></translation>
+        <translation>翻译服务不可达提示</translation>
     </message>
     <message>
         <source>减少透明度（关闭玻璃模糊效果）</source>
-        <translation type="unfinished"></translation>
+        <translation>减少透明度（关闭玻璃模糊效果）</translation>
     </message>
     <message>
         <source>开启后所有窗口的玻璃模糊效果退化为不透明卡片，提升性能与可读性，兼容老系统。即时生效无需重启。</source>
-        <translation type="unfinished"></translation>
+        <translation>开启后所有窗口的玻璃模糊效果退化为不透明卡片，提升性能与可读性，兼容老系统。即时生效无需重启。</translation>
     </message>
     <message>
         <source>可达性</source>
-        <translation type="unfinished"></translation>
+        <translation>可达性</translation>
     </message>
     <message>
         <source> pt</source>
-        <translation type="unfinished"></translation>
+        <translation> pt</translation>
     </message>
     <message>
         <source>原文字号</source>
-        <translation type="unfinished"></translation>
+        <translation>原文字号</translation>
     </message>
     <message>
         <source>译文字号</source>
-        <translation type="unfinished"></translation>
+        <translation>译文字号</translation>
     </message>
     <message>
         <source>点击选择译文颜色</source>
-        <translation type="unfinished"></translation>
+        <translation>点击选择译文颜色</translation>
     </message>
     <message>
         <source>跟随主题</source>
-        <translation type="unfinished"></translation>
+        <translation>跟随主题</translation>
     </message>
     <message>
         <source>选择译文颜色</source>
-        <translation type="unfinished"></translation>
+        <translation>选择译文颜色</translation>
     </message>
     <message>
         <source>译文颜色</source>
-        <translation type="unfinished"></translation>
+        <translation>译文颜色</translation>
     </message>
     <message>
         <source>自定义颜色请自行确认深色模式可读性</source>
-        <translation type="unfinished"></translation>
+        <translation>自定义颜色请自行确认深色模式可读性</translation>
     </message>
     <message>
         <source>测试异常：内部错误</source>
-        <translation type="unfinished"></translation>
+        <translation>测试异常：内部错误</translation>
     </message>
     <message>
         <source>测试超时</source>
-        <translation type="unfinished"></translation>
+        <translation>测试超时</translation>
     </message>
     <message>
         <source>测试启动失败：内部错误</source>
-        <translation type="unfinished"></translation>
+        <translation>测试启动失败：内部错误</translation>
     </message>
     <message>
         <source>代理测试异常：内部错误</source>
-        <translation type="unfinished"></translation>
+        <translation>代理测试异常：内部错误</translation>
     </message>
     <message>
         <source>代理测试超时</source>
-        <translation type="unfinished"></translation>
+        <translation>代理测试超时</translation>
     </message>
     <message>
         <source>代理测试启动失败：内部错误</source>
-        <translation type="unfinished"></translation>
+        <translation>代理测试启动失败：内部错误</translation>
+    </message>
+    <message>
+        <source>当前语言无专用嗓音，朗读时将使用系统默认嗓音</source>
+        <translation>当前语言无专用嗓音，朗读时将使用系统默认嗓音</translation>
+    </message>
+    <message>
+        <source>语言</source>
+        <translation>语言</translation>
+    </message>
+    <message>
+        <source>偏好嗓音</source>
+        <translation>偏好嗓音</translation>
+    </message>
+    <message>
+        <source>热键冲突提示（默认关，仅写日志）</source>
+        <translation>热键冲突提示（默认关，仅写日志）</translation>
+    </message>
+    <message>
+        <source>云端（Edge，推荐）</source>
+        <translation>云端（Edge，推荐）</translation>
+    </message>
+    <message>
+        <source>系统嗓音</source>
+        <translation>系统嗓音</translation>
+    </message>
+    <message>
+        <source>该语言暂无内置 Edge 嗓音映射，将使用多语言默认嗓音</source>
+        <translation>该语言暂无内置 Edge 嗓音映射，将使用多语言默认嗓音</translation>
+    </message>
+    <message>
+        <source>朗读引擎</source>
+        <translation>朗读引擎</translation>
+    </message>
+    <message>
+        <source>云端语音为非官方免费接口，需联网，仅供个人学习；失败时自动回退系统嗓音。</source>
+        <translation>云端语音为非官方免费接口，需联网，仅供个人学习；失败时自动回退系统嗓音。</translation>
+    </message>
+    <message>
+        <source>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</source>
+        <translation>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</translation>
     </message>
 </context>
 <context>
@@ -898,6 +962,10 @@
     <message>
         <source>退出</source>
         <translation>退出</translation>
+    </message>
+    <message>
+        <source>目标语言</source>
+        <translation type="unfinished">目标语言</translation>
     </message>
 </context>
 </TS>

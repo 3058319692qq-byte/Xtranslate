@@ -68,7 +68,7 @@ HistoryStore::HistoryStore(const QString &dbPath, QObject *parent)
 
     // 先确保表存在（首次创建用新 schema + user_version=1）。
     QSqlQuery ddl(m_db);
-    const bool created = ddl.exec(QStringLiteral(
+    bool created = ddl.exec(QStringLiteral(
         "CREATE TABLE IF NOT EXISTS trans_history("
         " id INTEGER PRIMARY KEY AUTOINCREMENT,"
         " ts INTEGER NOT NULL,"
@@ -77,6 +77,44 @@ HistoryStore::HistoryStore(const QString &dbPath, QObject *parent)
         " provider TEXT,"
         " scene TEXT CHECK(scene IN ('input','capture','selection','replace')),"
         " favorite INTEGER DEFAULT 0)"));
+
+    // v0.7.1 BUG-B 根因修复：history.db 被外部写坏（非 SQLite 文件/截断，
+    // 真机实际命中：旧验收脚本留下的 58 字节 marker 文件）时，此处
+    // CREATE TABLE 报 "file is not a database" → 旧版 m_ok=false，之后每次
+    // add() 静默返 0、query() 永远空 → "翻译多次历史却为空"。
+    // 修复：与 ConfigManager 损坏回退同款策略——证据保全为 .bak_corrupt
+    // 后重建空库，绝不让历史功能静默失效。
+    if (!created) {
+        qWarning("HistoryStore: schema init failed (%s), assuming corrupt db; "
+                 "backing up and recreating",
+                 qPrintable(ddl.lastError().text()));
+        ddl.clear();
+        bt.clear();
+        m_db.close();
+        const QString corruptBak = dbPath + QStringLiteral(".bak_corrupt");
+        QFile::remove(corruptBak);
+        if (QFile::rename(dbPath, corruptBak) && m_db.open()) {
+            QSqlQuery bt2(m_db);
+            bt2.exec(QStringLiteral("PRAGMA busy_timeout = 5000"));
+            QSqlQuery ddl2(m_db);
+            created = ddl2.exec(QStringLiteral(
+                "CREATE TABLE IF NOT EXISTS trans_history("
+                " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                " ts INTEGER NOT NULL,"
+                " src_lang TEXT, dst_lang TEXT,"
+                " src_text TEXT, dst_text TEXT,"
+                " provider TEXT,"
+                " scene TEXT CHECK(scene IN "
+                "('input','capture','selection','replace')),"
+                " favorite INTEGER DEFAULT 0)"));
+            if (created) {
+                QSqlQuery v1(m_db);
+                v1.exec(QStringLiteral("PRAGMA user_version = 1"));
+                qWarning("HistoryStore: corrupt db backed up to %s, fresh db "
+                         "recreated", qPrintable(corruptBak));
+            }
+        }
+    }
 
     // Schema 迁移：user_version 0→1。老库 CHECK 不含 'replace'，需重建表。
     // 失败回滚，库保持 v0 可用；首次迁移前备份 .bak_v0。
@@ -243,9 +281,11 @@ HistoryStore::HistoryStore(const QString &dbPath, QObject *parent)
 
     m_ok = created;
     if (m_ok) {
-        ddl.exec(QStringLiteral(
+        // 重建路径后 ddl 可能挂在已关闭的连接上，索引用新 QSqlQuery。
+        QSqlQuery idx(m_db);
+        idx.exec(QStringLiteral(
             "CREATE INDEX IF NOT EXISTS idx_hist_ts ON trans_history(ts)"));
-        ddl.exec(QStringLiteral(
+        idx.exec(QStringLiteral(
             "CREATE INDEX IF NOT EXISTS idx_hist_fav ON trans_history(favorite)"));
     }
 }

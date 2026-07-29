@@ -54,9 +54,9 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName(QStringLiteral("XTranslate"));
     QApplication::setApplicationDisplayName(QStringLiteral("X翻译"));
     QApplication::setOrganizationName(QStringLiteral("XTranslate"));
-    // Phase 9：版本号统一为 0.7.0（与 CMakeLists.txt / VERSIONINFO.rc 三处对齐，
-    // 防止再出现 Phase 7 漏改此处导致 selftest env / 关于页显示旧版本号的情况）。
-    QApplication::setApplicationVersion(QStringLiteral("0.7.0"));
+    // v0.7.2：版本号统一（与 CMakeLists.txt / VERSIONINFO.rc / XTranslate.iss /
+    // README 五处对齐，selftest env 输出 version 字段供验收自动核对）。
+    QApplication::setApplicationVersion(QStringLiteral("0.7.2"));
 
     // --selftest <mode> [args...]
     const QStringList args = QCoreApplication::arguments();

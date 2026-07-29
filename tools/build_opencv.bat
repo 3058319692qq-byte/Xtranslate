@@ -6,9 +6,11 @@ call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build
 
 set "CMAKE=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 set "NINJA=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe"
-set "SRC=e:\Transform\XTranslate\third_party\opencv"
-set "BLD=e:\Transform\XTranslate\third_party\opencv-build"
-set "INST=e:\Transform\XTranslate\third_party\opencv-install"
+rem repo root = parent of this script's directory (tools\)
+for %%I in ("%~dp0..") do set "ROOT=%%~fI"
+set "SRC=%ROOT%\third_party\opencv"
+set "BLD=%ROOT%\third_party\opencv-build"
+set "INST=%ROOT%\third_party\opencv-install"
 
 rem Clean previous generated trees for a reproducible slim build.
 if exist "%BLD%"  rmdir /s /q "%BLD%"

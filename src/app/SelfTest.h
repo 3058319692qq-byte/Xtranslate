@@ -47,10 +47,12 @@ int runOverlay();
 //   (environment-occupied keys).
 int runHotkey();
 
-// --selftest tts  (phase 3)
-//   JSON {"available":bool,"voices":N,"zh_voice":..,"en_voice":..}. When a
-//   voice exists, speak("test") live and pass unless it throws; available =
-//   false is also a pass (no engine on this machine, reported truthfully).
+// --selftest tts  (phase 3; v0.7.2 双引擎扩展)
+//   JSON 增报 engine(配置引擎，缺省 cloud)、edge_voice_map(内置映射表
+//   条数)、edge_map_ok(韩/日/法/中映射抽查)、cloud_ok(真实 Edge 云端
+//   合成一次；离线允许 false 如实上报)、fallback_ok(XT_TTS_FORCE_CLOUD_FAIL
+//   确定性模拟云端失败→必须观察到 system_fallback)。available=false
+//   仍算 pass；pass 要求 guess_lang_ok && edge_map_ok && fallback_ok。
 int runTts();
 
 // --selftest selection  (phase 3)

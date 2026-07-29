@@ -16,6 +16,7 @@
 #include "core/translate/providers/DeepLTranslator.h"
 #include "core/translate/providers/TencentTranslator.h"
 #include "core/translate/providers/YoudaoTranslator.h"
+#include "core/tts/EdgeTtsProvider.h"
 #include "core/tts/TtsManager.h"
 #include "ui/overlay/ControlBar.h"
 #include "ui/overlay/OverlayWindow.h"
@@ -50,6 +51,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLoggingCategory>
 #include <QPainter>
 #include <QPalette>
 #include <QTemporaryDir>
@@ -660,33 +662,135 @@ int runHotkey()
 
 int runTts()
 {
-    TtsManager &tts = TtsManager::instance();
+    // v0.7.2：云端 mp3 经 Qt Multimedia FFmpeg 后端播放时，FFmpeg 会向
+    // stderr 打 "Estimating duration from bitrate" 等诊断行（原生 av_log，
+    // 不走 Qt 日志链，过滤规则拦不住），污染批量脚本的 2>&1 合并流
+    // 并触发 PowerShell EAP=Stop 中断。本 selftest 契约输出只在 stdout
+    // （一行 JSON + exit code），故这里把 stderr 重定向到 NUL（仅影响
+    // 本模式进程，GUI 真实运行不受影响），并屏蔽 qt.multimedia 类目。
+    QLoggingCategory::setFilterRules(
+        QStringLiteral("qt.multimedia.*=false"));
+#ifdef _WIN32
+    freopen("NUL", "w", stderr);
+#endif
 
-    const QString zhVoice = tts.voiceNameFor(QStringLiteral("zh-CN"));
-    const QString enVoice = tts.voiceNameFor(QStringLiteral("en"));
+    TtsManager &tts = TtsManager::instance();
 
     QJsonObject obj;
     obj.insert(QStringLiteral("available"), tts.isAvailable());
     obj.insert(QStringLiteral("voices"), tts.voiceCount());
-    obj.insert(QStringLiteral("zh_voice"),
-               zhVoice.isEmpty() ? QJsonValue() : QJsonValue(zhVoice));
-    obj.insert(QStringLiteral("en_voice"),
-               enVoice.isEmpty() ? QJsonValue() : QJsonValue(enVoice));
+    // v0.7.2：双引擎。engine=当前配置引擎（缺省 cloud），edge_voice_map=
+    // 内置 lang→Edge voice 映射表条数（覆盖主窗目标语言全集）。
+    obj.insert(QStringLiteral("engine"), TtsManager::engine());
+    obj.insert(QStringLiteral("edge_voice_map"),
+               EdgeTtsProvider::voiceMapSize());
+    // 映射抽查：韩/日/法语选到对应语种神经嗓音（纯函数，无网络依赖）。
+    const bool edgeMapOk =
+        EdgeTtsProvider::voiceForLang(QStringLiteral("ko"))
+            .startsWith(QLatin1String("ko-KR-"))
+        && EdgeTtsProvider::voiceForLang(QStringLiteral("ja"))
+            .startsWith(QLatin1String("ja-JP-"))
+        && EdgeTtsProvider::voiceForLang(QStringLiteral("fr"))
+            .startsWith(QLatin1String("fr-FR-"))
+        && EdgeTtsProvider::voiceForLang(QStringLiteral("zh-CN"))
+            .startsWith(QLatin1String("zh-CN-"));
+    obj.insert(QStringLiteral("edge_map_ok"), edgeMapOk);
+
+    // v0.7.1 BUG-A 加强：枚举多语种嗓音。每个语种记录选到的 voice 名，
+    // 本机无该语言语音包时 <lang>_voice=null + <lang>_fallback_default=true
+    // （明确回退默认嗓音，不静默失败）。
+    const char *langs[] = {"zh-CN", "en", "ja", "ko", "fr"};
+    for (const char *lang : langs) {
+        const QString code = QString::fromLatin1(lang);
+        const QString voice = tts.voiceNameFor(code);
+        QString key = code;
+        key.replace(QLatin1Char('-'), QLatin1Char('_'));
+        // zh-CN/en 保留历史字段名 zh_voice/en_voice（验收脚本兼容）。
+        if (code == QLatin1String("zh-CN"))
+            key = QStringLiteral("zh");
+        obj.insert(key + QStringLiteral("_voice"),
+                   voice.isEmpty() ? QJsonValue() : QJsonValue(voice));
+        if (code != QLatin1String("zh-CN") && code != QLatin1String("en")) {
+            obj.insert(key + QStringLiteral("_fallback_default"),
+                       tts.isAvailable() && voice.isEmpty());
+        }
+    }
+
+    // v0.7.1 BUG-A 加强：guessLang 细分断言（假名→ja、谚文→ko、
+    // 汉字→zh-CN、拉丁→en）。纯函数无引擎依赖，失败即 exit!=0。
+    const bool guessOk =
+        TtsManager::guessLang(QStringLiteral("こんにちは")) == QLatin1String("ja")
+        && TtsManager::guessLang(QStringLiteral("안녕하세요")) == QLatin1String("ko")
+        && TtsManager::guessLang(QStringLiteral("你好世界")) == QLatin1String("zh-CN")
+        && TtsManager::guessLang(QStringLiteral("bonjour")) == QLatin1String("en")
+        && TtsManager::guessLang(QStringLiteral("漢字とかな")) == QLatin1String("ja");
+    obj.insert(QStringLiteral("guess_lang_ok"), guessOk);
+
+    // v0.7.2 回退链取证：
+    // 1) cloud_ok：真实请求一次 Edge 云端合成（在线环境 utteranceStarted
+    //    应报 "cloud"；离线/被墙环境允许 false，如实上报）。
+    // 2) fallback_ok：用 XT_TTS_FORCE_CLOUD_FAIL 确定性模拟云端失败，
+    //    必须观察到 "system_fallback"（回退链可达，不依赖真实断网）。
+    // speakWith 不读 tts.enabled 总开关，selftest 结果不受用户配置影响。
+    QString cloudEngineUsed;
+    QString fallbackEngineUsed;
+    {
+        QString *sink = &cloudEngineUsed;
+        QObject ctx;
+        QObject::connect(&tts, &TtsManager::utteranceStarted, &ctx,
+                         [&sink](const QString &engineUsed) {
+            if (sink && sink->isEmpty())
+                *sink = engineUsed;
+        });
+
+        tts.speakWith(QStringLiteral("cloud"), QStringLiteral("test"),
+                      QStringLiteral("en"));
+        for (int i = 0; i < 120 && cloudEngineUsed.isEmpty(); ++i)
+            pumpEventLoopFor(100);   // 最多 12s（云端 10s 超时 + 余量）
+        tts.stop();
+
+        sink = &fallbackEngineUsed;
+        qputenv("XT_TTS_FORCE_CLOUD_FAIL", "1");
+        tts.speakWith(QStringLiteral("cloud"), QStringLiteral("test"),
+                      QStringLiteral("en"));
+        for (int i = 0; i < 30 && fallbackEngineUsed.isEmpty(); ++i)
+            pumpEventLoopFor(100);
+        tts.stop();
+        qunsetenv("XT_TTS_FORCE_CLOUD_FAIL");
+        sink = nullptr;
+    }
+    const bool cloudOk = cloudEngineUsed == QLatin1String("cloud");
+    const bool fallbackOk =
+        fallbackEngineUsed == QLatin1String("system_fallback");
+    obj.insert(QStringLiteral("cloud_ok"), cloudOk);
+    obj.insert(QStringLiteral("cloud_engine_used"),
+               cloudEngineUsed.isEmpty() ? QJsonValue()
+                                         : QJsonValue(cloudEngineUsed));
+    obj.insert(QStringLiteral("fallback_ok"), fallbackOk);
+
     printJsonLine(obj);
 
     if (tts.isAvailable() && tts.voiceCount() > 0) {
         // Live utterance: must not throw. Give the engine a moment to start,
         // then stop - audible output is not asserted (headless CI machines).
+        // v0.7.1：加测一次 ja —— 无日语语音包时走默认嗓音兜底链，同样不得抛。
+        // v0.7.2：改走 speakWith("system") 直连系统引擎（speak() 现在默认
+        // 分派云端，此处要验的是本机链不得抛）。
         try {
-            tts.speak(QStringLiteral("test"), QStringLiteral("en"));
-            pumpEventLoopFor(500);
+            tts.speakWith(QStringLiteral("system"), QStringLiteral("test"),
+                          QStringLiteral("en"));
+            pumpEventLoopFor(300);
+            tts.speakWith(QStringLiteral("system"),
+                          QStringLiteral("テスト"), QStringLiteral("ja"));
+            pumpEventLoopFor(300);
             tts.stop();
         } catch (...) {
             return 1;
         }
     }
     // available == false is also a pass: no engine, reported truthfully.
-    return 0;
+    // cloud_ok 允许 false（离线如实上报）；fallback_ok/映射表必须绿。
+    return (guessOk && edgeMapOk && fallbackOk) ? 0 : 1;
 }
 
 int runSelection()
@@ -909,6 +1013,12 @@ int runDb()
     HistoryStore store(dir.filePath(QStringLiteral("history.db")));
     store.setLimit(1000); // generous for the insert phase
 
+    // v0.7.1 BUG-B 加强：add() 必须发 changed() 信号（侧栏即时刷新链的
+    // 根基：HistoryStore::changed → HistorySidebar::refresh）。
+    int changedCount = 0;
+    QObject::connect(&store, &HistoryStore::changed,
+                     [&changedCount]() { ++changedCount; });
+
     // one entry per scene, ascending timestamps
     const char *scenes[] = {"input", "capture", "selection"};
     QList<qint64> ids;
@@ -926,6 +1036,7 @@ int runDb()
         ids.append(store.add(e));
     }
     const bool insertOk = !ids.contains(0) && store.count() == 3;
+    const bool changedSignalOk = changedCount >= 3; // 每次 add 各发一次
 
     // fuzzy query hits the capture row
     const bool queryOk =
@@ -1075,8 +1186,39 @@ int runDb()
         }
     }
 
+    // ---- v0.7.1 损坏库回退用例（BUG-B 根因）----
+    // 构造非 SQLite 文件（真机命中：旧脚本写坏的 58 字节 marker）→
+    // HistoryStore 打开应备份 .bak_corrupt + 重建空库，add/query 正常。
+    bool corruptRecoverOk = false;
+    {
+        QTemporaryDir cdir;
+        if (cdir.isValid()) {
+            const QString cpath = cdir.filePath(QStringLiteral("corrupt.db"));
+            QFile f(cpath);
+            f.open(QIODevice::WriteOnly | QIODevice::Truncate);
+            f.write(QByteArrayLiteral("\xEF\xBB\xBFSQLite format 3\0fake "
+                                      "marker not a real database"));
+            f.close();
+            HistoryStore recovered(cpath);
+            recovered.setLimit(100);
+            HistoryEntry ce;
+            ce.srcLang = QStringLiteral("en");
+            ce.dstLang = QStringLiteral("zh-CN");
+            ce.srcText = QStringLiteral("corrupt recover");
+            ce.dstText = QStringLiteral("损坏恢复");
+            ce.provider = QStringLiteral("google");
+            ce.scene = QStringLiteral("input");
+            const qint64 cid = recovered.add(ce);
+            corruptRecoverOk = recovered.isOpen() && cid > 0
+                && recovered.count() == 1
+                && QFile::exists(cpath + QStringLiteral(".bak_corrupt"));
+        }
+    }
+
     QJsonObject obj;
     obj.insert(QStringLiteral("insert_ok"), insertOk);
+    obj.insert(QStringLiteral("changed_signal_ok"), changedSignalOk);
+    obj.insert(QStringLiteral("corrupt_recover_ok"), corruptRecoverOk);
     obj.insert(QStringLiteral("query_ok"), queryOk);
     obj.insert(QStringLiteral("favorite_ok"), favOk);
     obj.insert(QStringLiteral("trim_ok"), trimOk);
@@ -1089,7 +1231,8 @@ int runDb()
     obj.insert(QStringLiteral("migrate_bak_exists"), migrateBakExists);
     printJsonLine(obj);
 
-    return (insertOk && queryOk && favOk && trimOk && migrateOk) ? 0 : 1;
+    return (insertOk && changedSignalOk && corruptRecoverOk && queryOk
+            && favOk && trimOk && migrateOk) ? 0 : 1;
 }
 
 // ---------------------------------------------------------------------------

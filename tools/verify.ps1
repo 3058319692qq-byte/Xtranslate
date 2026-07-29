@@ -3,7 +3,7 @@
 #  2) GUI launch     : top-level window titled "X翻译"
 # "X翻译" is built from code points so this script stays pure ASCII on disk.
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$exe = 'e:\Transform\XTranslate\build\bin\XTranslate.exe'
+$exe = Join-Path (Split-Path -Parent $PSScriptRoot) 'build\bin\XTranslate.exe'
 $expected = [string]::new([char[]]@([char]0x58, [char]0x7FFB, [char]0x8BD1))  # X + 翻 + 译
 
 if (-not (Test-Path $exe)) { Write-Host "MISSING_EXE $exe"; exit 3 }

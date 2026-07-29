@@ -1,12 +1,14 @@
 // MainWindow - "输入翻译" (text input translation) main window.
 //
-// Layout : menu bar (设置 / 历史侧栏)
-//          + toolbar (source lang / swap / target lang / 截图OCR / 截图翻译 /
-//          provider)
+// Layout : toolbar island (source lang / swap / target lang / 截图OCR /
+//          截图翻译 / provider / 历史 / 设置)
 //          + source QPlainTextEdit
 //          + read-only result QPlainTextEdit with floating 复制/朗读 buttons
 //          + status bar (provider + elapsed / error)
 //          + collapsible history dock (search / favorite / refill).
+// v0.7.1 布局重构：菜单栏移除（原 视图/工具 两菜单仅历史/设置两项），
+//          入口改为工具条右侧"历史"图标钮（150ms 动效折叠右侧历史面板）
+//          + "设置"齿轮图标钮（托盘菜单仍有设置项，双入口）。
 // Behavior: 600 ms debounce auto-translate, Ctrl+Enter immediate translate,
 //           swap button exchanges languages and moves the result back to
 //           the source box.
@@ -16,6 +18,8 @@
 // Phase 4 : hotkeys come from ConfigManager (settings page rebinds live),
 //           styling moved to the theme QSS, successful input translations
 //           are recorded into HistoryStore (scene 'input').
+// v0.7.1  : 目标语言与 config translate.target_lang 双向同步（托盘子菜单
+//           切语言即时联动主窗下拉）。
 
 #pragma once
 
@@ -27,6 +31,7 @@
 class QComboBox;
 class QLabel;
 class QPlainTextEdit;
+class QPropertyAnimation;
 class QPushButton;
 class QTimer;
 class QToolButton;
@@ -69,10 +74,11 @@ private slots:
     void onHistoryEntryActivated(const HistoryEntry &entry);
     // Phase 7-fix1：翻译字体可调，配置改变即时刷新
     void onFontConfigChanged(const QString &path);
+    // v0.7.1：工具条"历史"钮切换右侧历史面板（150ms 宽度动效）。
+    void toggleHistoryPanel();
 
 private:
     void buildUi();
-    void buildMenu();
     void buildHistoryDock();
     void positionCopyButton();
     // Phase 7-fix2b BUG9：清空钮浮在 sourceEdit 右上角（与 copyButton 同款
@@ -96,6 +102,9 @@ private:
     QToolButton *m_swapButton = nullptr;
     QPushButton *m_shotOcrButton = nullptr;
     QPushButton *m_shotTranslateButton = nullptr;
+    // v0.7.1：去菜单栏后的工具条双入口（历史面板开关 + 设置）。
+    QPushButton *m_historyButton = nullptr;
+    QPushButton *m_settingsButton = nullptr;
     QPlainTextEdit *m_sourceEdit = nullptr;
     QPlainTextEdit *m_resultEdit = nullptr;
     QPushButton *m_copyButton = nullptr;
@@ -110,8 +119,11 @@ private:
     // Phase 3 state
     TrayManager *m_tray = nullptr;
     bool m_quitting = false;        // true only via tray 退出
-    bool m_hideHintShown = false;   // "已隐藏到托盘" bubble shown once
+    // v0.7.2："已隐藏到托盘"气泡改用配置标记 tray.minimized_hint_shown
+    // （仅首次弹一次，跨启动持久），进程内成员标记已移除。
 
     // Phase 4 state
     HistorySidebar *m_historyDock = nullptr;
+    // v0.7.1：历史面板折叠动效（单实例，重入时先停旧动画）。
+    QPropertyAnimation *m_historyAnim = nullptr;
 };

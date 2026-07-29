@@ -6,7 +6,7 @@
 #    -> copy LICENSE.txt / README.txt
 #  - run 15 selftest inside dist, all exit 0 required
 #  - print dist tree
-#  Output: e:\Transform\XTranslate\dist\XTranslate\
+#  Output: <repo>\dist\XTranslate\
 # ===========================================================================
 [CmdletBinding()]
 param(
@@ -15,7 +15,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$root       = 'e:\Transform\XTranslate'
+$root       = Split-Path -Parent $PSScriptRoot   # 仓库根目录（本脚本位于 tools\ 下）
 $buildBin   = Join-Path $root 'build\bin'
 $distRoot   = Join-Path $root 'dist'
 $distApp    = Join-Path $distRoot 'XTranslate'

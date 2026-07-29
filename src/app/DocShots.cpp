@@ -7,6 +7,7 @@
 #endif
 
 #include "core/config/ConfigManager.h"
+#include "core/storage/HistoryStore.h"
 #include "ui/MainWindow.h"
 #include "ui/overlay/ControlBar.h"
 #include "ui/overlay/OverlayWindow.h"
@@ -19,8 +20,10 @@
 #include <cstdio>
 
 #include <QApplication>
+#include <QComboBox>
 #include <QEventLoop>
 #include <QLabel>
+#include <QListWidget>
 #include <QMenu>
 #include <QPainter>
 #include <QPlainTextEdit>
@@ -281,9 +284,9 @@ int shotTray(const QString &outPath)
 {
     QWidget *backdrop = makeBackdrop();
 
-    // TrayManager builds the production menu (five actions + 设置/退出 with
-    // live hotkey text). Pop it over the backdrop and crop to the menu rect:
-    // no taskbar, no other tray icons in frame.
+    // TrayManager builds the production menu (five actions + 目标语言/设置/
+    // 退出 with live hotkey text). Pop it over the backdrop and crop to the
+    // menu rect: no taskbar, no other tray icons in frame.
     TrayManager tray;
     QMenu *menu = nullptr;
     for (QWidget *top : QApplication::topLevelWidgets()) {
@@ -298,12 +301,166 @@ int shotTray(const QString &outPath)
     menu->popup(screen.center());
     pumpEventLoopFor(500);
 
-    const int rc = captureAndSave(menu->frameGeometry().adjusted(
-                                      -12, -12, 12, 12),
-                                  outPath);
+    // v0.7.1：展开"目标语言"子菜单（带子菜单的唯一 action），证据截图
+    // 同时包含主菜单 + 子菜单（当前目标语言项带勾选）。
+    QMenu *subMenu = nullptr;
+    for (QAction *a : menu->actions()) {
+        if (a->menu()) {
+            menu->setActiveAction(a);
+            subMenu = a->menu();
+            subMenu->popup(menu->frameGeometry().topRight() + QPoint(6, 60));
+            break;
+        }
+    }
+    pumpEventLoopFor(500);
+
+    QRect rect = menu->frameGeometry();
+    if (subMenu && subMenu->isVisible())
+        rect = rect.united(subMenu->frameGeometry());
+    const int rc = captureAndSave(rect.adjusted(-12, -12, 12, 12), outPath);
+    if (subMenu)
+        subMenu->close();
     menu->close();
     delete backdrop;
     return rc;
+}
+
+// v0.7.1：设置窗指定页截图（navRow: 2=翻译服务 4=朗读）。
+// 翻译服务页验证选中态/间距；朗读页可选先切到日语验证"无专用嗓音用
+// 默认"提示（ttsLang 非空时）。
+int shotSettingsPage(const QString &outPath, int navRow, const QString &ttsLang)
+{
+    QWidget *backdrop = makeBackdrop();
+
+    SettingsWindow::open(nullptr);
+    SettingsWindow *settings = nullptr;
+    for (QWidget *top : QApplication::topLevelWidgets()) {
+        if ((settings = qobject_cast<SettingsWindow *>(top)))
+            break;
+    }
+    if (!settings) {
+        delete backdrop;
+        return 3;
+    }
+    if (auto *nav = settings->findChild<QListWidget *>(
+            QStringLiteral("settingsNav")))
+        nav->setCurrentRow(navRow);
+    if (!ttsLang.isEmpty()) {
+        if (auto *langCombo = settings->findChild<QComboBox *>(
+                QStringLiteral("ttsLangCombo"))) {
+            const int idx = langCombo->findData(ttsLang);
+            if (idx >= 0)
+                langCombo->setCurrentIndex(idx);
+        }
+    }
+    const QRect screen = QApplication::primaryScreen()->geometry();
+    settings->move(screen.center() - QPoint(settings->width() / 2,
+                                            settings->height() / 2));
+    settings->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    settings->show();
+    settings->raise();
+    pumpEventLoopFor(800);
+
+    const int rc = captureAndSave(settings->frameGeometry().adjusted(
+                                      -24, -24, 24, 24),
+                                  outPath);
+    delete backdrop;
+    return rc;
+}
+
+// v0.7.1 BUG-B 证据：真实翻译一次 → 历史侧栏立即出现该条。
+// 不阻断 textChanged：走生产链路 debounce→translate→写库→changed→侧栏。
+// 断言 HistoryStore 行数 +1（mock 兑底不写库时如实报 3）。
+int shotHistoryLive(const QString &outPath)
+{
+    QWidget *backdrop = makeBackdrop();
+
+    MainWindow window;
+    window.setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    const QRect screen = QApplication::primaryScreen()->geometry();
+    window.move(screen.center() - QPoint(window.width() / 2,
+                                         window.height() / 2));
+    window.show();
+    window.raise();
+    window.activateWindow();
+    pumpEventLoopFor(600);
+
+    const int before = HistoryStore::instance().count();
+    if (auto *src = window.findChild<QPlainTextEdit *>(
+            QStringLiteral("sourceEdit")))
+        src->setPlainText(kSampleEn); // 信号不阻断 → 真实翻译链路
+    pumpEventLoopFor(6000); // debounce 600ms + 网络往返 + 写库刷新
+    const int after = HistoryStore::instance().count();
+    std::fprintf(stdout, "HISTORY_LIVE before=%d after=%d\n", before, after);
+
+    const int rc = captureAndSave(window.frameGeometry().adjusted(
+                                      -24, -24, 24, 24),
+                                  outPath);
+    delete backdrop;
+    return (rc == 0 && after == before + 1) ? 0 : 3;
+}
+
+// v0.7.1 BUG-B 证据：历史为空时的占位文案（外层脚本负责把真库暂时
+// 移开再恢复）。不输入任何文本，只拍空态主窗 + 侧栏占位项。
+int shotHistoryEmpty(const QString &outPath)
+{
+    QWidget *backdrop = makeBackdrop();
+
+    MainWindow window;
+    window.setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    const QRect screen = QApplication::primaryScreen()->geometry();
+    window.move(screen.center() - QPoint(window.width() / 2,
+                                         window.height() / 2));
+    window.show();
+    window.raise();
+    pumpEventLoopFor(800);
+
+    const int rc = captureAndSave(window.frameGeometry().adjusted(
+                                      -24, -24, 24, 24),
+                                  outPath);
+    delete backdrop;
+    return rc;
+}
+
+// v0.7.1 托盘切目标语言联动证据：模拟托盘子菜单点选（写 config
+// translate.target_lang=ja）→ 主窗目标语言下拉即时跟随。截图 + stdout
+// 断言，结束后恢复原配置。
+int shotTraySync(const QString &outPath)
+{
+    QWidget *backdrop = makeBackdrop();
+
+    MainWindow window;
+    window.setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    const QRect screen = QApplication::primaryScreen()->geometry();
+    window.move(screen.center() - QPoint(window.width() / 2,
+                                         window.height() / 2));
+    window.show();
+    window.raise();
+    pumpEventLoopFor(600);
+
+    auto *combo = window.findChild<QComboBox *>(QStringLiteral("tgtLangCombo"));
+    if (!combo) {
+        delete backdrop;
+        return 3;
+    }
+    const QString before = combo->currentData().toString();
+    // 与托盘菜单项 triggered 完全同源的生产路径：写配置 → configChanged。
+    ConfigManager::instance().setValue(QStringLiteral("translate.target_lang"),
+                                       QStringLiteral("ja"));
+    pumpEventLoopFor(300);
+    const QString after = combo->currentData().toString();
+    std::fprintf(stdout, "TRAY_SYNC before=%s after=%s\n",
+                 before.toUtf8().constData(), after.toUtf8().constData());
+
+    const int rc = captureAndSave(window.frameGeometry().adjusted(
+                                      -24, -24, 24, 24),
+                                  outPath);
+    // 恢复原配置，不污染用户环境。
+    ConfigManager::instance().setValue(QStringLiteral("translate.target_lang"),
+                                       before.isEmpty()
+                                           ? QStringLiteral("zh-CN") : before);
+    delete backdrop;
+    return (rc == 0 && after == QLatin1String("ja")) ? 0 : 3;
 }
 
 } // namespace
@@ -330,8 +487,9 @@ int runShot(const QStringList &args)
     const int outIdx = args.indexOf(QStringLiteral("--out"));
     if (shotIdx < 0 || shotIdx + 1 >= args.size() || outIdx < 0
         || outIdx + 1 >= args.size()) {
-        std::fprintf(stderr, "usage: --shot <main|settings|popup|overlay|tray>"
-                             " --out <png> [--theme light|dark]\n");
+        std::fprintf(stderr, "usage: --shot <main|settings|popup|overlay|tray"
+                             "|providers|ttspage|historylive|historyempty"
+                             "|traysync> --out <png> [--theme light|dark]\n");
         return 2;
     }
     const QString scene = args.at(shotIdx + 1);
@@ -347,6 +505,17 @@ int runShot(const QStringList &args)
         return shotOverlay(outPath);
     if (scene == QLatin1String("tray"))
         return shotTray(outPath);
+    // v0.7.1 证据场景
+    if (scene == QLatin1String("providers"))
+        return shotSettingsPage(outPath, 2, QString());
+    if (scene == QLatin1String("ttspage"))
+        return shotSettingsPage(outPath, 4, QStringLiteral("ja"));
+    if (scene == QLatin1String("historylive"))
+        return shotHistoryLive(outPath);
+    if (scene == QLatin1String("historyempty"))
+        return shotHistoryEmpty(outPath);
+    if (scene == QLatin1String("traysync"))
+        return shotTraySync(outPath);
 
     std::fprintf(stderr, "unknown --shot scene: '%s'\n",
                  scene.toUtf8().constData());

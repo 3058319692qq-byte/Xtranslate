@@ -4,7 +4,7 @@
 #  - initializes MSVC x64 env via vcvars64.bat (through cmd /c)
 #  - configures + builds with the VS-bundled CMake + Ninja (Release)
 #  - deploys Qt runtime with windeployqt and copies onnxruntime.dll
-#  Output: e:\Transform\XTranslate\build\bin\XTranslate.exe
+#  Output: <repo>\build\bin\XTranslate.exe
 # ===========================================================================
 [CmdletBinding()]
 param(
@@ -20,7 +20,7 @@ $cmake  = 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\C
 $ninja  = 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe'
 
 # ---- project layout ----
-$root          = 'e:\Transform\XTranslate'
+$root          = $PSScriptRoot
 $build         = Join-Path $root 'build'
 $binOut        = Join-Path $build 'bin'
 $opencvInstall = Join-Path $root 'third_party\opencv-install'

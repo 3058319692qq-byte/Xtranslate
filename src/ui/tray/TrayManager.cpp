@@ -2,8 +2,10 @@
 
 #include "core/config/ConfigManager.h"
 #include "core/hotkey/HotkeyManager.h"
+#include "ui/LangCatalog.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QFont>
 #include <QMenu>
 #include <QPainter>
@@ -73,13 +75,18 @@ TrayManager::TrayManager(QObject *parent)
     }
     refreshShortcuts();
     // Rebinds from the settings page land in config("hotkeys.*").
+    // v0.7.1：translate.target_lang 变化（主窗下拉或托盘自身）同步勾选态。
     connect(&ConfigManager::instance(), &ConfigManager::configChanged, this,
             [this](const QString &path) {
         if (path.startsWith(QLatin1String("hotkeys")))
             refreshShortcuts();
+        else if (path == QLatin1String("translate.target_lang"))
+            syncTargetLangChecks();
     });
 
     m_menu->addSeparator();
+    // v0.7.1：目标语言快捷切换子菜单（与主窗目标语言下拉同源语言表）。
+    buildTargetLangMenu();
     m_settingsAction = m_menu->addAction(tr("设置"));
     connect(m_settingsAction, &QAction::triggered,
             this, &TrayManager::settingsRequested);
@@ -128,6 +135,48 @@ void TrayManager::refreshShortcuts()
         action->setShortcut(saved.isEmpty() ? spec.sequence
                                             : QKeySequence(saved));
     }
+}
+
+void TrayManager::buildTargetLangMenu()
+{
+    // 语言表同源 ui/LangCatalog.h（跳过 "auto"）；可勾选 QActionGroup 单选，
+    // 当前目标语言项打勾。点选 → 写 config translate.target_lang →
+    // configChanged 信号驱动主窗下拉同步，后续翻译用新目标语言。
+    m_targetLangMenu = m_menu->addMenu(tr("目标语言"));
+    m_targetLangGroup = new QActionGroup(this);
+    m_targetLangGroup->setExclusive(true);
+
+    int n = 0;
+    const LangEntry *langs = langCatalog(&n);
+    for (int i = 0; i < n; ++i) {
+        if (qstrcmp(langs[i].code, "auto") == 0)
+            continue; // 目标语言无 "自动检测"
+        const QString code = QString::fromLatin1(langs[i].code);
+        QAction *action = m_targetLangMenu->addAction(
+            QCoreApplication::translate("MainWindow", langs[i].label));
+        action->setCheckable(true);
+        action->setData(code);
+        m_targetLangGroup->addAction(action);
+        connect(action, &QAction::triggered, this, [code]() {
+            ConfigManager &cfg = ConfigManager::instance();
+            if (cfg.stringValue(QStringLiteral("translate.target_lang")) != code)
+                cfg.setValue(QStringLiteral("translate.target_lang"), code);
+        });
+    }
+    syncTargetLangChecks();
+}
+
+void TrayManager::syncTargetLangChecks()
+{
+    if (!m_targetLangGroup)
+        return;
+    QString code = ConfigManager::instance().stringValue(
+        QStringLiteral("translate.target_lang"));
+    if (code.isEmpty())
+        code = QStringLiteral("zh-CN");
+    const QList<QAction *> actions = m_targetLangGroup->actions();
+    for (QAction *action : actions)
+        action->setChecked(action->data().toString() == code);
 }
 
 bool TrayManager::isAvailable() const

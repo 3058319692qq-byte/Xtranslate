@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(XTranslate
-    VERSION 0.7.0
+    VERSION 0.7.2
     DESCRIPTION "XTranslate - screen translation tool (product name: X翻译)"
     LANGUAGES CXX)
 
@@ -23,7 +23,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 # Qt6  (CMAKE_PREFIX_PATH is injected by build.ps1 -> third_party/Qt/<ver>/msvc2022_64)
 # ---------------------------------------------------------------------------
 find_package(Qt6 REQUIRED COMPONENTS
-    Core Gui Widgets Network Sql Svg Multimedia TextToSpeech Concurrent)
+    Core Gui Widgets Network Sql Svg Multimedia TextToSpeech Concurrent
+    WebSockets)
 
 # ---------------------------------------------------------------------------
 # OpenCV  (static slim build: core + imgproc, installed under third_party/opencv-install)
@@ -97,6 +98,7 @@ add_executable(XTranslate WIN32
     src/core/translate/providers/OpenAiCompatTranslator.cpp
     src/core/translate/providers/TencentTranslator.cpp
     src/core/translate/providers/YoudaoTranslator.cpp
+    src/core/tts/EdgeTtsProvider.cpp
     src/core/tts/TtsManager.cpp
     src/ui/MainWindow.cpp
     src/ui/OcrResultDialog.cpp
@@ -124,6 +126,7 @@ target_include_directories(XTranslate PRIVATE
 target_link_libraries(XTranslate PRIVATE
     Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Sql
     Qt6::Svg Qt6::Multimedia Qt6::TextToSpeech Qt6::Concurrent
+    Qt6::WebSockets
     ${OpenCV_LIBS}
     onnxruntime)
 

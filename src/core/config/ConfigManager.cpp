@@ -182,9 +182,22 @@ QJsonObject ConfigManager::defaults()
 
     QJsonObject tts;
     tts.insert(QStringLiteral("enabled"), true);
+    // v0.7.2：双引擎。cloud=Edge 免费神经嗓音（默认，全语种），
+    // system=QTextToSpeech（SAPI/WinRT）。云端嗓音偏好键 tts.cloud_voice.<lang>
+    // 运行时按需写入，与系统引擎的 tts.voice.<lang> 平行互不干扰。
+    tts.insert(QStringLiteral("engine"), QStringLiteral("cloud"));
+    // v0.7.1 BUG-A：嗓音键改为按语言族动态 tts.voice.<lang>（运行时按需
+    // 写入，无需预置）；旧键 voice_zh/voice_en 保留作 legacy 回退。
     tts.insert(QStringLiteral("voice_zh"), QString()); // empty = auto pick
     tts.insert(QStringLiteral("voice_en"), QString());
     root.insert(QStringLiteral("tts"), tts);
+
+    // v0.7.1：目标语言单一真源（主窗下拉 ↔ 托盘子菜单双向同步）。
+    // 纯字段新增：老配置缺 top-level "translate" 时 merge 自动补默认，
+    // 无需 version 迁移。
+    QJsonObject translate;
+    translate.insert(QStringLiteral("target_lang"), QStringLiteral("zh-CN"));
+    root.insert(QStringLiteral("translate"), translate);
 
     QJsonObject selection;
     selection.insert(QStringLiteral("enabled"), true);
@@ -192,6 +205,8 @@ QJsonObject ConfigManager::defaults()
 
     // 通知开关（phase 5）：总开关 + 场景类目，默认全开。
     // translate_failed（phase 6）：翻译链路落到 mock 兜底时提示用户服务不可达。
+    // hotkey_conflict（v0.7.2）：热键被占用的气泡提示，默认关（只写
+    // qWarning 日志，解决 Alt+R 被占每次启动弹气泡骚扰）。
     QJsonObject notifications;
     notifications.insert(QStringLiteral("enabled"), true);
     notifications.insert(QStringLiteral("capture_ocr"), true);
@@ -199,7 +214,14 @@ QJsonObject ConfigManager::defaults()
     notifications.insert(QStringLiteral("selection"), true);
     notifications.insert(QStringLiteral("replace"), true);
     notifications.insert(QStringLiteral("translate_failed"), true);
+    notifications.insert(QStringLiteral("hotkey_conflict"), false);
     root.insert(QStringLiteral("notifications"), notifications);
+
+    // v0.7.2：托盘提示状态。首次最小化到托盘弹一次气泡后置 true，
+    // 之后永不再弹（跨进程持久，不再是每次启动都提示）。
+    QJsonObject tray;
+    tray.insert(QStringLiteral("minimized_hint_shown"), false);
+    root.insert(QStringLiteral("tray"), tray);
 
     QJsonObject history;
     history.insert(QStringLiteral("limit"), 5000);
@@ -376,6 +398,11 @@ bool ConfigManager::notificationCategoryEnabled(const QString &category) const
     if (!notificationsEnabled())
         return false;
     const QJsonValue v = value(QStringLiteral("notifications.") + category);
+    // v0.7.2 hotkey_conflict 缺省 = false（默认不弹，仅日志）：老配置
+    // notifications 子对象整体覆盖 defaults 后缺该键，若沿用"缺省视为开"
+    // 会让升级用户继续被气泡骚扰，故该类目单独缺省为关。
+    if (category == QLatin1String("hotkey_conflict"))
+        return v.isBool() ? v.toBool() : false;
     // 缺省 = true（保持默认全开语义，老配置文件升级时也能正确显示通知）。
     return v.isBool() ? v.toBool() : true;
 }

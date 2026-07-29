@@ -4,9 +4,10 @@
 $ErrorActionPreference = 'Continue'
 
 $py      = 'E:\miniconda3\python.exe'
-$out     = 'e:\Transform\XTranslate\third_party\Qt'
-$log     = 'e:\Transform\XTranslate\reports\qt_install.log'
-$result  = 'e:\Transform\XTranslate\reports\qt_install_result.txt'
+$repo    = Split-Path -Parent $PSScriptRoot   # repo root (this script lives in tools\)
+$out     = Join-Path $repo 'third_party\Qt'
+$log     = Join-Path $repo 'reports\qt_install.log'
+$result  = Join-Path $repo 'reports\qt_install_result.txt'
 $modules = @('qtmultimedia', 'qtspeech', 'qtimageformats')
 
 $attempts = @(

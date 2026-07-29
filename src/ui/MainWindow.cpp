@@ -10,6 +10,7 @@
 #include "core/selection/SelectionGrabber.h"
 #include "core/tts/TtsManager.h"
 #include "ui/OcrResultDialog.h"
+#include "ui/LangCatalog.h"
 #include "ui/history/HistorySidebar.h"
 #include "ui/overlay/ScreenTranslateController.h"
 #include "ui/popup/PopupCard.h"
@@ -35,9 +36,8 @@
 #include <QIcon>
 #include <QKeyEvent>
 #include <QLabel>
-#include <QMenu>
-#include <QMenuBar>
 #include <QPlainTextEdit>
+#include <QPropertyAnimation>
 #include <QPushButton>
 #include <QShowEvent>
 #include <QStatusBar>
@@ -48,30 +48,20 @@
 namespace {
 
 constexpr int kDebounceMs = 600;
+// v0.7.1：历史面板折叠动效时长与展开目标宽度。
+constexpr int kHistoryAnimMs = 150;
+constexpr int kHistoryPanelWidth = 280;
 
-struct LangEntry { const char *code; const char *label; };
-
-// BCP-47 code + display label (translated through the MainWindow context).
-const LangEntry kLangs[] = {
-    {"auto",  QT_TRANSLATE_NOOP("MainWindow", "自动检测")},
-    {"zh-CN", QT_TRANSLATE_NOOP("MainWindow", "简体中文")},
-    {"zh-TW", QT_TRANSLATE_NOOP("MainWindow", "繁体中文")},
-    {"en",    QT_TRANSLATE_NOOP("MainWindow", "英语")},
-    {"ja",    QT_TRANSLATE_NOOP("MainWindow", "日语")},
-    {"ko",    QT_TRANSLATE_NOOP("MainWindow", "韩语")},
-    {"fr",    QT_TRANSLATE_NOOP("MainWindow", "法语")},
-    {"de",    QT_TRANSLATE_NOOP("MainWindow", "德语")},
-    {"es",    QT_TRANSLATE_NOOP("MainWindow", "西班牙语")},
-    {"ru",    QT_TRANSLATE_NOOP("MainWindow", "俄语")},
-};
-
+// 语言表同源（ui/LangCatalog.h）：主窗下拉与托盘"目标语言"子菜单共用。
 void fillLangCombo(QComboBox *combo, bool withAuto)
 {
-    for (const LangEntry &e : kLangs) {
-        if (!withAuto && qstrcmp(e.code, "auto") == 0)
+    int n = 0;
+    const LangEntry *langs = langCatalog(&n);
+    for (int i = 0; i < n; ++i) {
+        if (!withAuto && qstrcmp(langs[i].code, "auto") == 0)
             continue;
-        combo->addItem(QCoreApplication::translate("MainWindow", e.label),
-                       QString::fromLatin1(e.code));
+        combo->addItem(QCoreApplication::translate("MainWindow", langs[i].label),
+                       QString::fromLatin1(langs[i].code));
     }
 }
 
@@ -99,7 +89,6 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowIcon(TrayManager::appIcon());
     resize(1080, 640);
     buildUi();
-    buildMenu();
     buildHistoryDock();
     initTrayAndHotkeys();
     // 启动时把注册表与 config.autostart 对齐（防第三方清理后悬空）。
@@ -149,7 +138,14 @@ void MainWindow::buildUi()
     m_toCombo = new QComboBox(toolbarIsland);
     m_toCombo->setObjectName(QStringLiteral("tgtLangCombo"));
     fillLangCombo(m_toCombo, false);
-    m_toCombo->setCurrentIndex(0); // zh-CN
+    // v0.7.1：目标语言从配置读（托盘子菜单同源），缺省 zh-CN。
+    {
+        const QString saved = ConfigManager::instance().stringValue(
+            QStringLiteral("translate.target_lang"));
+        const int savedIdx = m_toCombo->findData(
+            saved.isEmpty() ? QStringLiteral("zh-CN") : saved);
+        m_toCombo->setCurrentIndex(savedIdx >= 0 ? savedIdx : 0);
+    }
 
     m_providerCombo = new QComboBox(toolbarIsland);
     m_providerCombo->setObjectName(QStringLiteral("providerCombo"));
@@ -167,6 +163,29 @@ void MainWindow::buildUi()
     m_shotTranslateButton->setObjectName(QStringLiteral("shotButton"));
     m_shotTranslateButton->setCursor(Qt::PointingHandCursor);
 
+    // v0.7.1 去菜单栏：历史/设置入口改到工具条右端图标钮（Lucide
+    // history.svg / settings.svg，iconButton 玻璃胶囊样式，带 tooltip）。
+    m_historyButton = new QPushButton(toolbarIsland);
+    m_historyButton->setObjectName(QStringLiteral("iconButton"));
+    m_historyButton->setIcon(QIcon(QStringLiteral(":/icons/history.svg")));
+    m_historyButton->setIconSize(QSize(18, 18));
+    m_historyButton->setAccessibleName(tr("历史记录"));
+    m_historyButton->setToolTip(tr("历史记录（展开/收起）"));
+    m_historyButton->setCursor(Qt::PointingHandCursor);
+    m_historyButton->setFocusPolicy(Qt::NoFocus);
+    m_historyButton->setFixedSize(32, 28);
+    m_historyButton->setCheckable(true);
+
+    m_settingsButton = new QPushButton(toolbarIsland);
+    m_settingsButton->setObjectName(QStringLiteral("iconButton"));
+    m_settingsButton->setIcon(QIcon(QStringLiteral(":/icons/settings.svg")));
+    m_settingsButton->setIconSize(QSize(18, 18));
+    m_settingsButton->setAccessibleName(tr("设置"));
+    m_settingsButton->setToolTip(tr("设置"));
+    m_settingsButton->setCursor(Qt::PointingHandCursor);
+    m_settingsButton->setFocusPolicy(Qt::NoFocus);
+    m_settingsButton->setFixedSize(32, 28);
+
     toolRow->addWidget(new QLabel(tr("源语言"), toolbarIsland));
     toolRow->addWidget(m_fromCombo);
     toolRow->addWidget(m_swapButton);
@@ -178,6 +197,9 @@ void MainWindow::buildUi()
     toolRow->addStretch(1);
     toolRow->addWidget(new QLabel(tr("服务商"), toolbarIsland));
     toolRow->addWidget(m_providerCombo);
+    toolRow->addSpacing(4);
+    toolRow->addWidget(m_historyButton);
+    toolRow->addWidget(m_settingsButton);
     rootLayout->addWidget(toolbarIsland);
 
     // Phase 7-fix2 BUG6：源语言=自动检测时的灰字提示，说明混合语种只翻第一种
@@ -285,6 +307,32 @@ void MainWindow::buildUi()
             this, &MainWindow::startScreenshotOcr);
     connect(m_shotTranslateButton, &QPushButton::clicked,
             this, &MainWindow::startScreenshotTranslate);
+    // v0.7.1：工具条双入口（去菜单栏后历史/设置仍可达）。
+    connect(m_historyButton, &QPushButton::clicked,
+            this, &MainWindow::toggleHistoryPanel);
+    connect(m_settingsButton, &QPushButton::clicked,
+            this, &MainWindow::openSettings);
+    // v0.7.1：目标语言 → 配置（与托盘子菜单双向同步；写前比对防回环）。
+    connect(m_toCombo, &QComboBox::currentIndexChanged, this, [this]() {
+        const QString code = m_toCombo->currentData().toString();
+        ConfigManager &cfg = ConfigManager::instance();
+        if (!code.isEmpty()
+            && cfg.stringValue(QStringLiteral("translate.target_lang")) != code)
+            cfg.setValue(QStringLiteral("translate.target_lang"), code);
+    });
+    // 配置 → 目标语言下拉（托盘切语言即时联动；同值早退防回环）。
+    connect(&ConfigManager::instance(), &ConfigManager::configChanged,
+            this, [this](const QString &path) {
+        if (path != QLatin1String("translate.target_lang") || !m_toCombo)
+            return;
+        const QString code = ConfigManager::instance().stringValue(
+            QStringLiteral("translate.target_lang"));
+        if (code.isEmpty() || m_toCombo->currentData().toString() == code)
+            return;
+        const int idx = m_toCombo->findData(code);
+        if (idx >= 0)
+            m_toCombo->setCurrentIndex(idx);
+    });
     // Phase 7-fix2 BUG6：源语言切换时刷新 hint 可见性
     connect(m_fromCombo, &QComboBox::currentIndexChanged,
             this, [this](int idx) {
@@ -298,13 +346,6 @@ void MainWindow::buildUi()
     m_sourceEdit->setFocus();
 }
 
-void MainWindow::buildMenu()
-{
-    QMenu *toolsMenu = menuBar()->addMenu(tr("工具(&T)"));
-    QAction *settingsAction = toolsMenu->addAction(tr("设置…"));
-    connect(settingsAction, &QAction::triggered, this, &MainWindow::openSettings);
-}
-
 void MainWindow::buildHistoryDock()
 {
     m_historyDock = new HistorySidebar(this);
@@ -312,11 +353,53 @@ void MainWindow::buildHistoryDock()
     connect(m_historyDock, &HistorySidebar::entryActivated,
             this, &MainWindow::onHistoryEntryActivated);
 
-    // 视图 menu: collapsible toggle for the dock.
-    QMenu *viewMenu = menuBar()->addMenu(tr("视图(&V)"));
-    QAction *toggle = m_historyDock->toggleViewAction();
-    toggle->setText(tr("历史侧栏"));
-    viewMenu->addAction(toggle);
+    // v0.7.1 去菜单栏：开关改由工具条"历史"图标钮控制（toggleHistoryPanel，
+    // 150ms 宽度动效）。dock 自身标题栏关闭/浮动等可见性变化同步回按钮
+    // 勾选态，保证两侧状态一致。
+    connect(m_historyDock, &QDockWidget::visibilityChanged,
+            this, [this](bool visible) {
+        if (m_historyButton)
+            m_historyButton->setChecked(visible);
+    });
+    if (m_historyButton)
+        m_historyButton->setChecked(m_historyDock->isVisible());
+}
+
+void MainWindow::toggleHistoryPanel()
+{
+    if (!m_historyDock)
+        return;
+    // 重入保护：快速连点时先停掉上一段动画并恢复自由宽度。
+    if (m_historyAnim) {
+        m_historyAnim->stop();
+        m_historyAnim = nullptr;
+        m_historyDock->setMaximumWidth(QWIDGETSIZE_MAX);
+    }
+    const bool show = !m_historyDock->isVisible();
+    auto *anim = new QPropertyAnimation(m_historyDock,
+                                        QByteArrayLiteral("maximumWidth"),
+                                        this);
+    m_historyAnim = anim;
+    anim->setDuration(kHistoryAnimMs);
+    anim->setEasingCurve(QEasingCurve::OutCubic);
+    if (show) {
+        m_historyDock->setMaximumWidth(0);
+        m_historyDock->setVisible(true);
+        anim->setStartValue(0);
+        anim->setEndValue(kHistoryPanelWidth);
+    } else {
+        anim->setStartValue(m_historyDock->width());
+        anim->setEndValue(0);
+    }
+    connect(anim, &QPropertyAnimation::finished, this, [this, anim, show]() {
+        if (!show)
+            m_historyDock->setVisible(false);
+        // 动效结束后解除宽度锁，恢复用户自由拖宽 dock。
+        m_historyDock->setMaximumWidth(QWIDGETSIZE_MAX);
+        if (m_historyAnim == anim)
+            m_historyAnim = nullptr;
+    });
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void MainWindow::openSettings()
@@ -612,7 +695,9 @@ void MainWindow::speakResult()
     const QString text = m_resultEdit->toPlainText();
     if (text.isEmpty())
         return;
-    TtsManager::instance().speak(text, TtsManager::guessLang(text));
+    // v0.7.1 BUG-A：译文语种就是当前目标语言（dstLang），直接传它选嗓音；
+    // 不再走 guessLang 启发式（日/韩译文曾被归到 zh 导致选错嗓音）。
+    TtsManager::instance().speak(text, m_toCombo->currentData().toString());
     m_statusLabel->setText(tr("朗读中…"));
 }
 
@@ -669,11 +754,19 @@ void MainWindow::initTrayAndHotkeys()
                                                  : QKeySequence(saved);
         if (!hotkeys.registerAction(spec.actionId, seq,
                                     callbackFor(spec.actionId))) {
-            // Conflict: keep going, just tell the user which key is taken.
+            // v0.7.2：冲突不再默认弹气泡（Alt+R 被占每次启动都弹，骚扰），
+            // 改为恒写 qWarning 日志；气泡受 notifications.hotkey_conflict
+            // 类目开关控制（默认关，设置→常规→通知可开）。注册仍继续，
+            // 其余热键不受影响。
+            qWarning().noquote() << QStringLiteral(
+                "[hotkey] conflict: %1 (%2) already taken by another process, "
+                "action disabled; rebind in settings")
+                .arg(seq.toString(QKeySequence::NativeText), spec.label);
             m_tray->showBubble(
                 QStringLiteral("X翻译"),
                 tr("快捷键 %1 被占用（%2 不可用），可在设置中修改")
-                    .arg(seq.toString(QKeySequence::NativeText), spec.label));
+                    .arg(seq.toString(QKeySequence::NativeText), spec.label),
+                QStringLiteral("hotkey_conflict"));
         }
     }
 }
@@ -684,8 +777,12 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (!m_quitting && m_tray && m_tray->isAvailable()) {
         event->ignore();
         hide();
-        if (!m_hideHintShown) {
-            m_hideHintShown = true;
+        // v0.7.2："已最小化到托盘"改为配置标记 tray.minimized_hint_shown，
+        // 全局仅首次弹一次（跨启动持久）；旧实现是进程内标记，每次
+        // 启动后首次关窗都会弹。
+        ConfigManager &cfg = ConfigManager::instance();
+        if (!cfg.boolValue(QStringLiteral("tray.minimized_hint_shown"))) {
+            cfg.setValue(QStringLiteral("tray.minimized_hint_shown"), true);
             m_tray->showBubble(
                 QStringLiteral("X翻译"),
                 tr("已最小化到托盘，双击图标恢复；托盘菜单可退出"));

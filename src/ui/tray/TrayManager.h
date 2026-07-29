@@ -5,7 +5,9 @@
 //
 // Menu: the five hotkey actions (with their shortcuts displayed; shortcut
 // context is WidgetShortcut so the GLOBAL hotkeys stay the only trigger and
-// nothing fires twice) + separator + 设置 (opens SettingsWindow, phase 4) +
+// nothing fires twice) + separator + 目标语言 submenu (v0.7.1: quick target
+// language switch, QActionGroup 单选，写 config translate.target_lang，与
+// 主窗目标语言下拉双向同步) + 设置 (opens SettingsWindow, phase 4) +
 // 退出. Double-clicking the tray icon toggles the main window.
 // 退出 emits quitRequested; the owner performs the real teardown.
 // The displayed shortcuts follow ConfigManager("hotkeys.*") live.
@@ -17,6 +19,7 @@
 #include <QObject>
 
 class QAction;
+class QActionGroup;
 class QMenu;
 class QSystemTrayIcon;
 
@@ -52,9 +55,15 @@ signals:
 
 private:
     void refreshShortcuts();
+    // v0.7.1：构建"目标语言"子菜单 + 同步当前配置项勾选态。
+    void buildTargetLangMenu();
+    void syncTargetLangChecks();
 
     QSystemTrayIcon *m_tray = nullptr;
     QMenu *m_menu = nullptr;
     QAction *m_settingsAction = nullptr;
     QHash<QString, QAction *> m_actionById;
+    // v0.7.1：目标语言子菜单（与主窗下拉同源 LangCatalog，单选打勾）。
+    QMenu *m_targetLangMenu = nullptr;
+    QActionGroup *m_targetLangGroup = nullptr;
 };

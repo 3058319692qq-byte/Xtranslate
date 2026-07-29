@@ -2,7 +2,7 @@
 # ===========================================================================
 #  XTranslate Phase 9 - 一条龙打包脚本
 #  流程: 清场 → 生成图标 → build -Clean → deploy → 校验 dist → ISCC 编译
-#  产出: installer\Output\XTranslate-Setup-0.7.0.exe
+#  产出: installer\Output\XTranslate-Setup-0.7.2.exe
 #  任一步失败即 throw
 # ===========================================================================
 [CmdletBinding()]
@@ -12,14 +12,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$root       = 'e:\Transform\XTranslate'
+$root       = Split-Path -Parent $PSScriptRoot   # 仓库根目录（本脚本位于 tools\ 下）
 $installer  = Join-Path $root 'installer'
 $issPath    = Join-Path $installer 'XTranslate.iss'
 $genIcon    = Join-Path $installer 'gen_app_icon.ps1'
 $distApp    = Join-Path $root 'dist\XTranslate'
 $distExe    = Join-Path $distApp 'XTranslate.exe'
 $outputDir  = Join-Path $installer 'Output'
-$outputExe  = Join-Path $outputDir 'XTranslate-Setup-0.7.0.exe'
+$outputExe  = Join-Path $outputDir 'XTranslate-Setup-0.7.2.exe'
 
 # ISCC 路径自动探测：winget 可能装到 machine-scope (Program Files) 或 user-scope (LOCALAPPDATA)
 $isccCandidates = @(
@@ -34,7 +34,7 @@ if (-not $iscc) {
 Write-Host "[pack] ISCC: $iscc"
 
 Write-Host '============================================================'
-Write-Host '  XTranslate Phase 9 - pack installer (v0.7.0)'
+Write-Host '  XTranslate - pack installer (v0.7.2)'
 Write-Host '============================================================'
 
 # ---------------------------------------------------------------------------

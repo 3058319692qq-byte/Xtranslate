@@ -32,7 +32,9 @@ ThemePalette lightPalette()
     p.secondaryButtonText = QColor(0x1F, 0x29, 0x37);    // 次按钮文字 #1F2937
     // Phase 7-fix2：次按钮独立底色，不依赖 glass_surface 透底（BUG3 根治）
     p.secondaryButtonBg = QColor(0, 0, 0, 15);            // rgba(0,0,0,0.06)
-    p.selectionBg = QColor(0, 0, 0, 15);                 // rgba(0,0,0,0.06)
+    // v0.7.1：选中态对比度提升（翻译服务列表/设置导航选中看不清）：
+    // 浅色 0.06→0.10，选中项一眼可辨且文字对比度仍 ≥4.5:1。
+    p.selectionBg = QColor(0, 0, 0, 26);                 // rgba(0,0,0,0.10)
     p.selectionLeftBar = QColor(0x11, 0x11, 0x11);       // 左条 #111111
 
     p.windowBg = QColor(0xFA, 0xF7, 0xF2);
@@ -78,7 +80,8 @@ ThemePalette darkPalette()
     p.secondaryButtonText = QColor(0xE7, 0xE9, 0xEE);    // 次按钮文字 #E7E9EE
     // Phase 7-fix2：次按钮独立底色，不依赖 glass_surface 透底（BUG3 根治）
     p.secondaryButtonBg = QColor(255, 255, 255, 36);      // rgba(255,255,255,0.14)
-    p.selectionBg = QColor(255, 255, 255, 20);            // rgba(255,255,255,0.08)
+    // v0.7.1：选中态对比度提升：深色 0.08→0.16，选中项一眼可辨。
+    p.selectionBg = QColor(255, 255, 255, 41);            // rgba(255,255,255,0.16)
     p.selectionLeftBar = QColor(0xF5, 0xF5, 0xF5);       // 左条 #F5F5F5
 
     p.windowBg = QColor(0x1E, 0x1B, 0x18);

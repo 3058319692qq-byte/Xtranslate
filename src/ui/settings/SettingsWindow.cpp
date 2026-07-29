@@ -7,7 +7,9 @@
 #include "core/ocr/SystemOcrEngine.h"
 #include "core/plugin/PluginManager.h"
 #include "core/translate/TranslationManager.h"
+#include "core/tts/EdgeTtsProvider.h"
 #include "core/tts/TtsManager.h"
+#include "ui/LangCatalog.h"
 #include "ui/theme/ThemeManager.h"
 
 #ifdef _WIN32
@@ -18,6 +20,7 @@
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
+#include <QFont>
 #include <QFormLayout>
 #include <QFrame>
 #include <QFutureWatcher>
@@ -391,6 +394,8 @@ QWidget *SettingsWindow::buildGeneralPage()
     notifForm->addRow(tr("总开关"), m_notifMaster);
 
     // 场景类目：capture_ocr / capture_translate / selection / replace / translate_failed。
+    // hotkey_conflict（v0.7.2）：默认关，开启后启动时热键被占才弹气泡
+    // （关闭时仅写日志）。
     struct NotifCat { const char *key; const char *label; };
     const NotifCat cats[] = {
         {"capture_ocr",       QT_TRANSLATE_NOOP("SettingsWindow", "截图 OCR 完成")},
@@ -398,6 +403,7 @@ QWidget *SettingsWindow::buildGeneralPage()
         {"selection",         QT_TRANSLATE_NOOP("SettingsWindow", "划词翻译提示")},
         {"replace",           QT_TRANSLATE_NOOP("SettingsWindow", "文本替换结果")},
         {"translate_failed",  QT_TRANSLATE_NOOP("SettingsWindow", "翻译服务不可达提示")},
+        {"hotkey_conflict",   QT_TRANSLATE_NOOP("SettingsWindow", "热键冲突提示（默认关，仅写日志）")},
     };
     for (const NotifCat &c : cats) {
         auto *cb = new QCheckBox(tr(c.label), page);
@@ -549,12 +555,19 @@ QWidget *SettingsWindow::buildProvidersPage()
            "不参与自动调度。"), page));
 
     auto *body = new QHBoxLayout;
-    body->setSpacing(14);
+    // v0.7.1 UI：左列表与右侧配置区拉开间距，避免拥挤。
+    body->setSpacing(22);
 
     // left: priority list + reorder buttons
     auto *leftCol = new QVBoxLayout;
     m_providerList = new QListWidget(page);
+    // v0.7.1 UI：独立 objectName 走 QSS 专属规则（项高≥34px、项间留白、
+    // 选中态半透明灰底+左侧主色竖条，hover 弱反馈）。
+    m_providerList->setObjectName(QStringLiteral("providerList"));
     m_providerList->setSelectionMode(QAbstractItemView::SingleSelection);
+    // 项间留白：QListView::setSpacing 对每项四周加留白（QSS margin 对
+    // ::item 不可靠，用视图层 API 保证三态主题一致）。
+    m_providerList->setSpacing(2);
     leftCol->addWidget(m_providerList, 1);
 
     auto *orderRow = new QHBoxLayout;
@@ -591,9 +604,20 @@ QWidget *SettingsWindow::buildProvidersPage()
     connect(upBtn, &QPushButton::clicked, this, [this]() { moveProvider(-1); });
     connect(downBtn, &QPushButton::clicked, this, [this]() { moveProvider(1); });
     connect(m_providerList, &QListWidget::currentItemChanged, this,
-            [this](QListWidgetItem *current, QListWidgetItem *) {
-        if (current)
+            [this](QListWidgetItem *current, QListWidgetItem *previous) {
+        // v0.7.1 UI：选中项文字加粗（QSS ::item 不支持 font-weight，
+        // 用 item 字体实现，三态主题通用）。
+        if (previous) {
+            QFont f = previous->font();
+            f.setBold(false);
+            previous->setFont(f);
+        }
+        if (current) {
+            QFont f = current->font();
+            f.setBold(true);
+            current->setFont(f);
             rebuildProviderForm(current->data(Qt::UserRole).toString());
+        }
     });
     connect(m_providerList, &QListWidget::itemChanged, this,
             [this](QListWidgetItem *item) {
@@ -628,13 +652,18 @@ void SettingsWindow::reloadProviderList(const QString &selectName)
             continue;
         auto *item = new QListWidgetItem(providerDisplayName(name));
         item->setData(Qt::UserRole, name);
+        // v0.7.1 UI：项高加大到 36px（QSS ::item min-height 不能驱动
+        // delegate sizeHint，真机实测仍拥挤，改用 setSizeHint 硬保证）。
+        item->setSizeHint(QSize(0, 36));
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         const QJsonObject pc = cfg.providerConfig(name);
         item->setCheckState(pc.value(QStringLiteral("enabled")).toBool()
                                 ? Qt::Checked : Qt::Unchecked);
         if (!t->isConfigured()) {
             // Visible but greyed out: needs credentials before scheduling.
-            item->setForeground(QColor(0x9A, 0x92, 0x86));
+            // v0.7.1 UI：灰色跟随主题 subText（浅/深主题下与启用项亮度
+            // 差异都清晰），不再用固定色。
+            item->setForeground(ThemeManager::instance().palette().subText);
             item->setToolTip(tr("未配置密钥，暂不参与自动调度"));
         }
         m_providerList->addItem(item);
@@ -857,47 +886,145 @@ QWidget *SettingsWindow::buildTtsPage()
     auto *form = new QFormLayout;
     form->setSpacing(12);
 
-    auto *zhCombo = new QComboBox(page);
-    auto *enCombo = new QComboBox(page);
-    zhCombo->addItem(tr("自动选择"), QString());
-    enCombo->addItem(tr("自动选择"), QString());
-    for (const QString &name : tts.voiceNamesFor(QStringLiteral("zh-CN")))
-        zhCombo->addItem(name, name);
-    for (const QString &name : tts.voiceNamesFor(QStringLiteral("en")))
-        enCombo->addItem(name, name);
-    const int zhIdx = zhCombo->findData(cfg.stringValue(QStringLiteral("tts.voice_zh")));
-    const int enIdx = enCombo->findData(cfg.stringValue(QStringLiteral("tts.voice_en")));
-    zhCombo->setCurrentIndex(zhIdx >= 0 ? zhIdx : 0);
-    enCombo->setCurrentIndex(enIdx >= 0 ? enIdx : 0);
-    connect(zhCombo, &QComboBox::currentIndexChanged, this, [zhCombo]() {
-        ConfigManager::instance().setValue(QStringLiteral("tts.voice_zh"),
-                                           zhCombo->currentData().toString());
+    // v0.7.2：朗读引擎选择。cloud=Edge 免费神经嗓音（默认，全语种、无需
+    // 本机语音包），system=本机 QTextToSpeech。切换立即写配置并刷新
+    // 嗓音下拉数据源（云端列 Edge voices，系统列本机 voices）。
+    auto *engineCombo = new QComboBox(page);
+    engineCombo->setObjectName(QStringLiteral("ttsEngineCombo"));
+    engineCombo->addItem(tr("云端（Edge，推荐）"), QStringLiteral("cloud"));
+    engineCombo->addItem(tr("系统嗓音"), QStringLiteral("system"));
+    engineCombo->setCurrentIndex(
+        TtsManager::engine() == QLatin1String("system") ? 1 : 0);
+
+    // v0.7.1 BUG-A：不再写死中/英两个嗓音下拉，改为"语言 + 嗓音"两级
+    // 选择；配置键按语言族动态：系统引擎 tts.voice.<lang>（TtsManager::
+    // voiceConfigKey），云端引擎 tts.cloud_voice.<lang>（EdgeTtsProvider::
+    // voiceConfigKey），两套偏好互不干扰。
+    auto *langCombo = new QComboBox(page);
+    // objectName 供 --shot 证据场景定位（新增名，红线允许）。
+    langCombo->setObjectName(QStringLiteral("ttsLangCombo"));
+    {
+        int n = 0;
+        const LangEntry *langs = langCatalog(&n);
+        for (int i = 0; i < n; ++i) {
+            if (qstrcmp(langs[i].code, "auto") == 0)
+                continue;
+            langCombo->addItem(
+                QCoreApplication::translate("MainWindow", langs[i].label),
+                QString::fromLatin1(langs[i].code));
+        }
+    }
+    auto *voiceCombo = new QComboBox(page);
+    voiceCombo->setObjectName(QStringLiteral("ttsVoiceCombo"));
+    // 回退提示沿用 hintLabel 样式（objectName 不改，QSS 选择器依赖）。
+    auto *fallbackHint = makeHint(QString(), page);
+
+    // 引擎/语言切换 → 重建嗓音列表 + 预选当前配置（blockSignals 防重建
+    // 过程误写）。云端数据源是内置 Edge 映射表，不依赖本机语音包。
+    const auto reloadVoices = [voiceCombo, langCombo, engineCombo,
+                               fallbackHint]() {
+        const QString code = langCombo->currentData().toString();
+        const bool cloud = engineCombo->currentData().toString()
+                           == QLatin1String("cloud");
+        ConfigManager &cfg = ConfigManager::instance();
+
+        voiceCombo->blockSignals(true);
+        voiceCombo->clear();
+        voiceCombo->addItem(tr("自动选择"), QString());
+        QStringList names;
+        QString saved;
+        if (cloud) {
+            names = EdgeTtsProvider::voicesForLang(code);
+            saved = cfg.stringValue(EdgeTtsProvider::voiceConfigKey(code));
+        } else {
+            names = TtsManager::instance().voiceNamesFor(code);
+            saved = cfg.stringValue(TtsManager::voiceConfigKey(code));
+            if (saved.isEmpty()) {
+                // legacy 回退：v0.7.0 前只有 voice_zh/voice_en 两个固定键。
+                if (code.startsWith(QLatin1String("zh")))
+                    saved = cfg.stringValue(QStringLiteral("tts.voice_zh"));
+                else if (code == QLatin1String("en"))
+                    saved = cfg.stringValue(QStringLiteral("tts.voice_en"));
+            }
+        }
+        for (const QString &name : names)
+            voiceCombo->addItem(name, name);
+        const int idx = voiceCombo->findData(saved);
+        voiceCombo->setCurrentIndex(idx >= 0 ? idx : 0);
+        voiceCombo->blockSignals(false);
+
+        // 无可选嗓音时明示回退去向，不静默。
+        if (cloud) {
+            fallbackHint->setText(names.isEmpty()
+                ? tr("该语言暂无内置 Edge 嗓音映射，将使用多语言默认嗓音")
+                : QString());
+        } else {
+            fallbackHint->setText(names.isEmpty()
+                ? tr("当前语言无专用嗓音，朗读时将使用系统默认嗓音")
+                : QString());
+        }
+        fallbackHint->setVisible(names.isEmpty());
+    };
+    connect(engineCombo, &QComboBox::currentIndexChanged, this,
+            [engineCombo, reloadVoices]() {
+        ConfigManager::instance().setValue(
+            QStringLiteral("tts.engine"),
+            engineCombo->currentData().toString());
+        reloadVoices();
     });
-    connect(enCombo, &QComboBox::currentIndexChanged, this, [enCombo]() {
-        ConfigManager::instance().setValue(QStringLiteral("tts.voice_en"),
-                                           enCombo->currentData().toString());
+    connect(langCombo, &QComboBox::currentIndexChanged, this, reloadVoices);
+    connect(voiceCombo, &QComboBox::currentIndexChanged, this,
+            [voiceCombo, langCombo, engineCombo]() {
+        const QString code = langCombo->currentData().toString();
+        const QString name = voiceCombo->currentData().toString();
+        ConfigManager &cfg = ConfigManager::instance();
+        if (engineCombo->currentData().toString()
+                == QLatin1String("cloud")) {
+            cfg.setValue(EdgeTtsProvider::voiceConfigKey(code), name);
+            return;
+        }
+        cfg.setValue(TtsManager::voiceConfigKey(code), name);
+        // 镜像写 legacy 键，保持旧回退链与新键一致（避免"清空新键后
+        // 又被残留 legacy 值顶回去"的不一致）。
+        if (code.startsWith(QLatin1String("zh")))
+            cfg.setValue(QStringLiteral("tts.voice_zh"), name);
+        else if (code == QLatin1String("en"))
+            cfg.setValue(QStringLiteral("tts.voice_en"), name);
     });
-    form->addRow(tr("中文嗓音"), zhCombo);
-    form->addRow(tr("英文嗓音"), enCombo);
+    reloadVoices();
+
+    form->addRow(tr("朗读引擎"), engineCombo);
+    form->addRow(tr("语言"), langCombo);
+    form->addRow(tr("偏好嗓音"), voiceCombo);
+    form->addRow(QString(), fallbackHint);
     layout->addLayout(form);
 
+    // v0.7.2 合规灰字：云端接口性质与回退语义明示。
+    layout->addWidget(makeHint(
+        tr("云端语音为非官方免费接口，需联网，仅供个人学习；"
+           "失败时自动回退系统嗓音。"),
+        page));
+
     auto *testBtn = new QPushButton(tr("测试朗读"), page);
-    connect(testBtn, &QPushButton::clicked, this, []() {
+    connect(testBtn, &QPushButton::clicked, this, [langCombo]() {
+        // 用当前选中语言朗读测试句；speak() 按配置引擎分派（引擎下拉
+        // 切换即写配置），直接验证云端/系统链路与回退。
         TtsManager::instance().speak(
             tr("你好，这是 X翻译 的朗读测试。Hello from XTranslate."),
-            QStringLiteral("zh-CN"));
+            langCombo->currentData().toString());
     });
     auto *testRow = new QHBoxLayout;
     testRow->addWidget(testBtn);
     testRow->addStretch(1);
     layout->addLayout(testRow);
 
+    // v0.7.2：本机无系统语音引擎时不再整页禁用（云端引擎不依赖本机
+    // 语音包），仅提示回退能力受限。
     if (!tts.isAvailable()) {
-        enableCheck->setEnabled(false);
-        zhCombo->setEnabled(false);
-        enCombo->setEnabled(false);
-        testBtn->setEnabled(false);
-        layout->addWidget(makeHint(tr("本机没有可用的语音引擎。"), page));
+        layout->addWidget(makeHint(
+            tr("本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，"
+               "但失败时无法回退本机嗓音。"),
+            page));
     }
     layout->addStretch(1);
     return page;

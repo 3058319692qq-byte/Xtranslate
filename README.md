@@ -16,7 +16,7 @@
 - **截图 OCR**：拖选屏幕区域 → OCR → 结果对话框（含坐标、置信度）
 - **划词翻译**：选中文本 → 弹出译文卡片
 - **文本替换**：选中文本 → 翻译 → 就地替换原文
-- **朗读剪贴板**：TTS 朗读剪贴板内容（中英文嗓音可选）
+- **朗读剪贴板**：TTS 朗读剪贴板内容（v0.7.2 新增云端 Edge 神经嗓音，默认引擎，全语种无需本机语音包；失败自动回退系统嗓音）
 - **插件扩展**：进程外翻译插件（plugin.exe / plugin.py / plugin.bat）
 - **Liquid Glass UI**：Windows 11 亚克力毛玻璃效果，浅色/深色/跟随系统主题
 - **多语言界面**：中文（默认）/ English
@@ -45,7 +45,7 @@
 
 ### 方式一：安装包（推荐）
 
-1. 从 [Releases](../../releases) 下载 `XTranslate-Setup-0.7.0.exe`
+1. 从 [Releases](../../releases) 下载 `XTranslate-Setup-0.7.2.exe`
 2. 运行安装程序（中文向导）
 3. 启动后驻留系统托盘
 
@@ -55,7 +55,7 @@
 
 - **Visual Studio 2022**（含 C++ 桌面开发 workload）
 - **CMake 3.21+**
-- **Qt 6.8.3**（MSVC 2022 x64，含以下模块：Core, Gui, Widgets, Network, Sql, Svg, Multimedia, TextToSpeech, Concurrent）
+- **Qt 6.8.3**（MSVC 2022 x64，含以下模块：Core, Gui, Widgets, Network, Sql, Svg, Multimedia, TextToSpeech, Concurrent, WebSockets）
 - **OpenCV 4.10**（静态精简构建：core + imgproc）
 - **ONNX Runtime 1.27**（Windows x64 预构建）
 - **Inno Setup 6**（仅打包安装包时需要）
@@ -109,6 +109,15 @@ powershell -ExecutionPolicy Bypass -File tools/pack_installer.ps1
 | OpenAI 兼容 | 是 | baseUrl + API Key + 模型 |
 
 在 **设置 → 翻译服务** 中配置密钥与优先级。
+
+## 朗读（TTS）
+
+- **云端（Edge，默认）**：Edge 浏览器"大声朗读"同源神经嗓音，全语种（中/英/日/韩/法/德/西/俄…）开箱即用，不依赖本机语音包；需联网，受代理设置影响。
+- **系统嗓音**：本机 SAPI/WinRT 语音引擎，离线可用，需安装对应语言的语音包。
+- 回退链：云端失败（断网/接口变更）自动回退系统嗓音；系统无对应语音包再回退默认嗓音，全程不崩溃不静默。
+- 在 **设置 → 朗读** 中切换引擎、按语言选嗓音、测试朗读。
+
+> **声明**：云端语音使用 Edge 非官方免费接口（与 Google/Bing 免费翻译同性质），仅供个人学习，接口可用性不作保证。
 
 ## OCR 引擎
 

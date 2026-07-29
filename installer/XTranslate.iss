@@ -1,13 +1,13 @@
 ﻿; ===========================================================================
 ;  X翻译 (XTranslate) - Inno Setup 脚本 (Phase 9)
-;  产出: installer\Output\XTranslate-Setup-0.7.0.exe
+;  产出: installer\Output\XTranslate-Setup-0.7.2.exe
 ;
 ;  编译: ISCC.exe XTranslate.iss
 ;  依赖: dist\XTranslate\ 已由 tools\deploy.ps1 重建
 ; ===========================================================================
 
-; --- 固定版本号（与 CMakeLists.txt VERSION 0.7.0 / VERSIONINFO.rc 同步）---
-#define MyVersion "0.7.0"
+; --- 固定版本号（与 CMakeLists.txt VERSION 0.7.2 / VERSIONINFO.rc 同步）---
+#define MyVersion "0.7.2"
 
 [Setup]
 ; AppId 永不可变 —— 卸载/升级识别用，写死后任何后续版本必须沿用此 GUID。

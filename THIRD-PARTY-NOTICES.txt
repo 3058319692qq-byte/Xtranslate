@@ -59,3 +59,8 @@ X翻译 (XTranslate) 第三方组件版权声明
 各翻译服务（Google、Bing、DeepL、百度翻译、有道智云、腾讯云 TMT、OpenAI 兼容、
 DeepLX、Lingva）的商标与服务条款归各自所有者所有。用户在使用这些服务前应
 阅读并遵守对应服务的服务条款与隐私政策。
+
+云端语音（Edge TTS，v0.7.2）使用 Microsoft Edge 浏览器"大声朗读"的非官方
+免费接口（与上述 Google/Bing 免费翻译接口同性质）；所用 TrustedClientToken
+为 Edge 客户端内置公开常量，非用户密钥。该能力仅供个人学习，接口可用性
+不作保证；相关商标与服务条款归 Microsoft 所有。

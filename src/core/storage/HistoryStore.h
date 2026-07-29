@@ -13,6 +13,9 @@
 // 库保持 v0 可用；首次迁移前备份 history.db.bak_v0（仅一次，不覆盖）。
 // 空新库直接 user_version=1。
 //
+// v0.7.1：损坏库回退——文件非 SQLite 格式（建表失败）时备份为
+// history.db.bak_corrupt 并重建空库，历史功能绝不静默失效。
+//
 // add() trims the table afterwards: when the row count exceeds the limit
 // (ConfigManager history.limit for the shared instance, or setLimit() for
 // tests), the OLDEST rows with favorite=0 are deleted; favorites survive.

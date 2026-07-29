@@ -78,6 +78,15 @@ Provider: %3</translation>
         <source>删除</source>
         <translation>Delete</translation>
     </message>
+    <message>
+        <source>无匹配的历史记录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>暂无历史记录
+（翻译成功后自动记录；离线占位结果不计入）</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>HotkeyManager</name>
@@ -230,19 +239,19 @@ Provider: %3</translation>
     </message>
     <message>
         <source>工具(&amp;T)</source>
-        <translation>&amp;Tools</translation>
+        <translation type="vanished">&amp;Tools</translation>
     </message>
     <message>
         <source>设置…</source>
-        <translation>Settings…</translation>
+        <translation type="vanished">Settings…</translation>
     </message>
     <message>
         <source>视图(&amp;V)</source>
-        <translation>&amp;View</translation>
+        <translation type="vanished">&amp;View</translation>
     </message>
     <message>
         <source>历史侧栏</source>
-        <translation>History Sidebar</translation>
+        <translation type="vanished">History Sidebar</translation>
     </message>
     <message>
         <source>翻译中…</source>
@@ -327,6 +336,18 @@ Provider: %3</translation>
     <message>
         <source>自动检测：每次翻译仅识别源文中的主要语种；若源文混合多种语种，将只翻译第一种，建议手动选择源语言以获更准确结果。</source>
         <translation>Auto-detect: each translation detects only the dominant language in the source text. If the source mixes multiple languages, only the first one is translated — manually selecting the source language yields more accurate results.</translation>
+    </message>
+    <message>
+        <source>历史记录</source>
+        <translation type="unfinished">History</translation>
+    </message>
+    <message>
+        <source>历史记录（展开/收起）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>设置</source>
+        <translation type="unfinished">Settings</translation>
     </message>
 </context>
 <context>
@@ -652,11 +673,11 @@ Provider: %3</translation>
     </message>
     <message>
         <source>中文嗓音</source>
-        <translation>Chinese Voice</translation>
+        <translation type="vanished">Chinese Voice</translation>
     </message>
     <message>
         <source>英文嗓音</source>
-        <translation>English Voice</translation>
+        <translation type="vanished">English Voice</translation>
     </message>
     <message>
         <source>测试朗读</source>
@@ -668,7 +689,7 @@ Provider: %3</translation>
     </message>
     <message>
         <source>本机没有可用的语音引擎。</source>
-        <translation>No speech engine is available on this machine.</translation>
+        <translation type="vanished">No speech engine is available on this machine.</translation>
     </message>
     <message>
         <source>不使用代理</source>
@@ -888,6 +909,46 @@ Provider: %3</translation>
         <source>代理测试启动失败：内部错误</source>
         <translation>Failed to start proxy test: internal error</translation>
     </message>
+    <message>
+        <source>当前语言无专用嗓音，朗读时将使用系统默认嗓音</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>语言</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>偏好嗓音</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>热键冲突提示（默认关，仅写日志）</source>
+        <translation>Hotkey conflict notice (off by default, log only)</translation>
+    </message>
+    <message>
+        <source>云端（Edge，推荐）</source>
+        <translation>Cloud (Edge, recommended)</translation>
+    </message>
+    <message>
+        <source>系统嗓音</source>
+        <translation>System voice</translation>
+    </message>
+    <message>
+        <source>该语言暂无内置 Edge 嗓音映射，将使用多语言默认嗓音</source>
+        <translation>No built-in Edge voice mapping for this language; a multilingual default voice will be used</translation>
+    </message>
+    <message>
+        <source>朗读引擎</source>
+        <translation>TTS engine</translation>
+    </message>
+    <message>
+        <source>云端语音为非官方免费接口，需联网，仅供个人学习；失败时自动回退系统嗓音。</source>
+        <translation>Cloud voice uses an unofficial free endpoint, requires network access and is for personal study only; falls back to the system voice on failure.</translation>
+    </message>
+    <message>
+        <source>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</source>
+        <translation>No system speech engine is available on this machine; the cloud (Edge) engine still works, but cannot fall back to a local voice on failure.</translation>
+    </message>
 </context>
 <context>
     <name>TrayManager</name>
@@ -898,6 +959,10 @@ Provider: %3</translation>
     <message>
         <source>退出</source>
         <translation>Quit</translation>
+    </message>
+    <message>
+        <source>目标语言</source>
+        <translation type="unfinished">Target</translation>
     </message>
 </context>
 </TS>

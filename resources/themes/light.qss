@@ -119,6 +119,10 @@ QToolButton#iconButton:pressed, QPushButton#iconButton:pressed,
 QPushButton#clearButton:pressed {
     background: #000000; color: #FFFFFF;
 }
+/* v0.7.1：工具条"历史"钮可勾选（面板展开时保持激活态） */
+QPushButton#iconButton:checked {
+    background: #111111; color: #FFFFFF; border-color: #111111;
+}
 QToolButton#iconButton:disabled, QPushButton#iconButton:disabled,
 QPushButton#clearButton:disabled {
     background: #F0EBE2; color: #B8AFA0;
@@ -164,6 +168,16 @@ QListWidget#settingsNav {
     font-size: 14px; padding-top: 8px;
 }
 QListWidget#settingsNav::item { padding: 10px 16px; margin: 2px 8px; }
+/* v0.7.1 翻译服务列表：项高加大 + 项间留白 + 选中态强化（浅 0.10 灰底 + 左主色条） */
+QListWidget#providerList::item {
+    min-height: 34px; padding: 6px 10px; margin: 3px 6px;
+    border-radius: 6px; border-left: 3px solid transparent;
+}
+QListWidget#providerList::item:hover { background: rgba(0,0,0,0.05); }
+QListWidget#providerList::item:selected {
+    background: rgba(0,0,0,0.10); color: #33291A;
+    border-left: 3px solid #111111;
+}
 /* Phase 7-fix1：设置导航选中态改苹果式"半透明灰底 + 左条" */
 QListWidget#settingsNav::item:selected {
     background: rgba(0,0,0,0.06); color: #33291A;

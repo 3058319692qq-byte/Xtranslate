@@ -134,6 +134,23 @@ void HistorySidebar::refresh()
     m_entries = HistoryStore::instance().query(m_searchEdit->text(),
                                                m_favOnlyCheck->isChecked());
     m_list->clear();
+    // v0.7.1 BUG-B：空态占位。mock 离线占位结果按策略不入库，新用户网络
+    // 不通时侧栏永远空白会被误认为"历史坏了"，用占位文案说明原因。
+    // 占位项 NoItemFlags：不可选/不响应双击，右键菜单经 entryForItem
+    // id<=0 早退，零副作用。
+    if (m_entries.isEmpty()) {
+        const bool filtered = !m_searchEdit->text().isEmpty()
+                              || m_favOnlyCheck->isChecked();
+        auto *placeholder = new QListWidgetItem(
+            filtered
+                ? tr("无匹配的历史记录")
+                : tr("暂无历史记录\n（翻译成功后自动记录；"
+                     "离线占位结果不计入）"));
+        placeholder->setFlags(Qt::NoItemFlags);
+        placeholder->setTextAlignment(Qt::AlignCenter);
+        m_list->addItem(placeholder);
+        return;
+    }
     for (const HistoryEntry &e : m_entries) {
         const QString when = QDateTime::fromMSecsSinceEpoch(e.tsMs)
                                  .toString(QStringLiteral("MM-dd HH:mm"));
