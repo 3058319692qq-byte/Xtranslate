@@ -54,9 +54,9 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName(QStringLiteral("XTranslate"));
     QApplication::setApplicationDisplayName(QStringLiteral("X翻译"));
     QApplication::setOrganizationName(QStringLiteral("XTranslate"));
-    // v0.7.2：版本号统一（与 CMakeLists.txt / VERSIONINFO.rc / XTranslate.iss /
+    // v0.7.3：版本号统一（与 CMakeLists.txt / VERSIONINFO.rc / XTranslate.iss /
     // README 五处对齐，selftest env 输出 version 字段供验收自动核对）。
-    QApplication::setApplicationVersion(QStringLiteral("0.7.2"));
+    QApplication::setApplicationVersion(QStringLiteral("0.7.3"));
 
     // --selftest <mode> [args...]
     const QStringList args = QCoreApplication::arguments();

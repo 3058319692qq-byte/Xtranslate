@@ -1,6 +1,6 @@
 // VERSIONINFO.rc - Windows version info resource (phase 5).
 // Embedded into XTranslate.exe; visible via Properties -> Details.
-// File and product versions follow CMakeLists.txt VERSION 0.7.2 -> 0,7,2,0.
+// File and product versions follow CMakeLists.txt VERSION 0.7.3 -> 0,7,3,0.
 //
 // NOTE: rc.exe via cmcldeps wraps cl.exe preprocessing, which by default
 // parses .rc with the system ACP. UTF-8 multi-byte sequences get mis-decoded
@@ -16,7 +16,7 @@ IDI_ICON1 ICON "app.ico"
 
 #define VER_MAJOR 0
 #define VER_MINOR 7
-#define VER_PATCH 2
+#define VER_PATCH 3
 #define VER_BUILD 0
 
 #define STRINGIFY2(x) #x

@@ -45,7 +45,7 @@
 
 ### 方式一：安装包（推荐）
 
-1. 从 [Releases](../../releases) 下载 `XTranslate-Setup-0.7.2.exe`
+1. 从 [Releases](../../releases) 下载 `XTranslate-Setup-0.7.3.exe`
 2. 运行安装程序（中文向导）
 3. 启动后驻留系统托盘
 
