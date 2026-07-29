@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/themes">
+        <file alias="light.qss">themes/light.qss</file>
+        <file alias="dark.qss">themes/dark.qss</file>
+        <file alias="glass_template.qss">themes/glass_template.qss</file>
+    </qresource>
+    <qresource prefix="/i18n">
+        <file alias="xtranslate_zh_CN.qm">i18n/xtranslate_zh_CN.qm</file>
+        <file alias="xtranslate_en.qm">i18n/xtranslate_en.qm</file>
+    </qresource>
+</RCC>

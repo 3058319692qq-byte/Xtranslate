@@ -1,0 +1,37 @@
+# Build & deploy artifacts
+/build/
+/dist/
+
+# Third-party prebuilt libraries (Qt / OpenCV / ONNX Runtime, ~1GB+)
+# Clone后需自行准备 third_party/，见 README.md "Build from source"
+/third_party/
+
+# OCR models (约 31MB，用 tools/fetch_models.ps1 下载官方 PP-OCRv6 small)
+/models/
+
+# Installer output (XTranslate-Setup-*.exe)
+/installer/Output/
+
+# Reports (历史验收证据，不纳入版本控制)
+/reports/
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.aps
+*.VC.db
+*.VC.opendb
+
+# Dev-time logs scattered in repo root
+/*.log
+/*.out
+
+# Temporary scripts created by dev agent (one-shot probes)
+/tools/_*.*
+
+# docs/ 显式放行（README.md 引用的展示截图，需提交到仓库）
+!docs/

@@ -1,0 +1,300 @@
+/* XTranslate Liquid Glass QSS 模板 (Phase 7-fix1)
+ *
+ * 由 ThemeManager::renderGlassQss() 在 apply 时填充占位符。
+ * 占位符使用双花括号风格（如 glass_surface / accent / radius_card）；
+ * 渲染后 hasResidualPlaceholders() 必须返回 false。
+ *
+ * 设计原则（Phase 7-fix1 黑白灰高质感）：
+ *   - 玻璃面 rgba 半透明底色（真模糊之上 浅 0.42/深 0.40，Acrylic 通透感）
+ *   - resultCard 阅读焦点独立 alpha 0.65/0.68 保证译文可读
+ *   - 1px 外描边 rgba(255,255,255,0.35/0.12)
+ *   - 圆角同心体系：窗口 20 → 卡片 16 → 控件 10 → 按钮 10
+ *   - 阴影 0 8px 32px rgba(0,0,0,0.16/0.45)
+ *   - 文字 #1F2937/#ECEEF2 保证 ≥4.5:1 对比度
+ *   - 主色灰阶（黑/白互换反色按钮，苹果式）：accent=主按钮底，accent_text=主按钮文字
+ *   - 次按钮=透明玻璃胶囊+secondary_button_border 描边，文字 secondary_button_text
+ *   - hover/pressed 切换灰阶；focus 用 focus_border 1.5px
+ *   - 选中项=selection_bg 半透明灰底+selection_left_bar 左条
+ *   - 功能色保留（statusDot 绿/黄/红，错误红字 #D9433B，⚠ 警示前缀）
+ */
+
+/* ---- base ---- */
+/* 玻璃化下窗口背景透明（让 DWM Acrylic 透出），由子级玻璃卡片自绘底色。
+   减少透明度模式由 ThemeManager 自动切回静态 qss，这里不处理。 */
+QMainWindow, QDialog { background: transparent; }
+QWidget#centralArea { background: transparent; }
+QLabel { color: {{text}}; }
+QToolTip {
+    background: {{card_bg}}; color: {{text}};
+    border: 1px solid {{card_border}}; padding: 4px 8px;
+    border-radius: {{radius_control}}px;
+}
+
+/* ---- menus / menubar ---- */
+QMenuBar { background: transparent; color: {{text}}; }
+QMenuBar::item { padding: 4px 10px; background: transparent; border-radius: {{radius_control}}px; }
+QMenuBar::item:selected { background: {{glass_surface}}; }
+QMenu {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    padding: 4px; border-radius: {{radius_card}}px;
+    /* QMenu 不支持 box-shadow，阴影由布局留白模拟 */
+}
+QMenu::item { padding: 5px 24px 5px 16px; border-radius: {{radius_control}}px; color: {{text}}; }
+QMenu::item:selected { background: {{accent}}; color: {{accent_text}}; }
+QMenu::item:disabled { color: {{sub_text}}; }
+QMenu::separator { height: 1px; background: {{glass_border}}; margin: 4px 8px; }
+
+/* ---- inputs ---- */
+QComboBox {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    border-radius: {{radius_control}}px; padding: 4px 10px;
+    min-width: 84px; color: {{text}};
+}
+QComboBox:hover { border-color: {{focus_border}}; }
+QComboBox:focus { border: 2px solid {{focus_border}}; }
+QComboBox:disabled { background: {{card_bg}}; color: {{sub_text}}; }
+QComboBox::drop-down { border: none; width: 18px; }
+QComboBox QAbstractItemView {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    selection-background-color: {{accent}}; selection-color: {{accent_text}};
+    color: {{text}}; border-radius: {{radius_control}}px;
+    padding: 4px;
+}
+QLineEdit, QSpinBox, QKeySequenceEdit {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    border-radius: {{radius_control}}px; padding: 4px 8px;
+    color: {{text}}; selection-background-color: {{accent}};
+    selection-color: {{accent_text}};
+}
+QLineEdit:focus, QSpinBox:focus, QKeySequenceEdit:focus { border: 2px solid {{focus_border}}; }
+QLineEdit:disabled, QSpinBox:disabled { background: {{card_bg}}; color: {{sub_text}}; }
+QPlainTextEdit, QTextEdit {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px; padding: 10px;
+    /* font-size 由 ConfigManager.ui.font 在运行时通过 setFont() 注入，
+       QSS 不再硬编码，避免 setFont 与 QSS 优先级冲突。 */
+    color: {{text}}; selection-background-color: {{accent}};
+    selection-color: {{accent_text}};
+}
+QPlainTextEdit:focus, QTextEdit:focus { border: 2px solid {{focus_border}}; }
+QPlainTextEdit#resultEdit { background: {{result_card_surface}}; }
+QCheckBox, QRadioButton { color: {{text}}; spacing: 6px; }
+QCheckBox:disabled, QRadioButton:disabled { color: {{sub_text}}; }
+
+/* ---- buttons ---- */
+/* 主按钮：实心灰阶（黑/白互换反色按钮）+ accent_text 反色文字 */
+QPushButton {
+    background: {{accent}}; color: {{accent_text}}; border: none;
+    border-radius: {{radius_control}}px; padding: 5px 14px; font-size: 13px;
+}
+QPushButton:hover { background: {{accent_hover}}; }
+QPushButton:pressed { background: {{accent_pressed}}; }
+QPushButton:disabled { background: {{card_border}}; color: {{sub_text}}; }
+QPushButton:focus { border: 2px solid {{focus_border}}; }
+/* shotButton = 玻璃上次按钮：独立底色 + secondary_button_border 描边
+   Phase 7-fix2：背景从 glass_surface 改为 secondary_button_bg 独立令牌，
+   避免与 toolbarIsland 同色融合导致对比度不足（BUG3 根治）。 */
+QPushButton#shotButton {
+    background: {{secondary_button_bg}}; color: {{secondary_button_text}};
+    border: 1px solid {{secondary_button_border}}; border-radius: {{radius_control}}px;
+    padding: 4px 12px; font-size: 13px;
+}
+QPushButton#shotButton:hover { background: {{accent}}; color: {{accent_text}}; }
+/* Phase 7-fix2：工具条 3 个 ComboBox 走次按钮同款底色+描边，保证对比度。
+   objectName: srcLangCombo / tgtLangCombo / providerCombo（MainWindow.buildUi 设置）。 */
+QComboBox#srcLangCombo, QComboBox#tgtLangCombo, QComboBox#providerCombo {
+    background: {{secondary_button_bg}}; color: {{secondary_button_text}};
+    border: 1px solid {{secondary_button_border}}; border-radius: {{radius_control}}px;
+    padding: 4px 10px; min-width: 84px;
+}
+QComboBox#srcLangCombo:hover, QComboBox#tgtLangCombo:hover, QComboBox#providerCombo:hover {
+    border-color: {{focus_border}};
+}
+QComboBox#srcLangCombo:focus, QComboBox#tgtLangCombo:focus, QComboBox#providerCombo:focus {
+    border: 2px solid {{focus_border}};
+}
+QComboBox#srcLangCombo QAbstractItemView,
+QComboBox#tgtLangCombo QAbstractItemView,
+QComboBox#providerCombo QAbstractItemView {
+    background: {{card_bg}}; border: 1px solid {{secondary_button_border}};
+    selection-background-color: {{accent}}; selection-color: {{accent_text}};
+    color: {{text}}; border-radius: {{radius_control}}px; padding: 4px;
+}
+QPushButton#copyButton {
+    border-radius: {{radius_control}}px; font-size: 12px; padding: 2px 6px;
+}
+/* ghostButton = 描边按钮（设置页次要操作） */
+QPushButton#ghostButton {
+    background: {{glass_surface}}; color: {{secondary_button_text}};
+    border: 1px solid {{secondary_button_border}}; border-radius: {{radius_control}}px;
+}
+QPushButton#ghostButton:hover { background: {{accent}}; color: {{accent_text}}; }
+/* swapButton = 圆形交换钮（主操作） */
+QToolButton#swapButton {
+    background: {{accent}}; color: {{accent_text}}; border: none;
+    border-radius: {{radius_control}}px; font-size: 16px;
+    padding: 2px 10px; min-height: 24px;
+}
+QToolButton#swapButton:hover { background: {{accent_hover}}; }
+/* iconButton = 图标胶囊（PopupCard/ControlBar/OcrResultDialog 上的图标钮）。
+   clearButton = 主窗原文卡片的"清空输入"图标钮（Phase 7-fix2b BUG9），
+   与 iconButton 同款胶囊样式（独立 objectName 是契约要求，样式同源）。 */
+QToolButton#iconButton, QPushButton#iconButton, QPushButton#clearButton {
+    background: {{glass_surface}}; color: {{text}};
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_control}}px;
+    padding: 4px; min-width: 28px; min-height: 28px;
+}
+QToolButton#iconButton:hover, QPushButton#iconButton:hover,
+QPushButton#clearButton:hover {
+    background: {{accent}}; color: {{accent_text}}; border-color: {{accent}};
+}
+QToolButton#iconButton:pressed, QPushButton#iconButton:pressed,
+QPushButton#clearButton:pressed {
+    background: {{accent_pressed}}; color: {{accent_text}};
+}
+QToolButton#iconButton:disabled, QPushButton#iconButton:disabled,
+QPushButton#clearButton:disabled {
+    background: {{card_bg}}; color: {{sub_text}};
+}
+/* primaryIconButton = 主操作图标按钮（如 OcrResultDialog 的"翻译"）。
+   实心灰阶 + accent_text 文字 + 图标，与默认 QPushButton 主按钮同色但尺寸收紧匹配图标钮。 */
+QPushButton#primaryIconButton {
+    background: {{accent}}; color: {{accent_text}};
+    border: 1px solid {{accent}};
+    border-radius: {{radius_control}}px;
+    padding: 4px; min-width: 28px; min-height: 28px;
+}
+QPushButton#primaryIconButton:hover { background: {{accent_hover}}; }
+QPushButton#primaryIconButton:pressed { background: {{accent_pressed}}; }
+QPushButton#primaryIconButton:disabled { background: {{card_border}}; color: {{sub_text}}; }
+
+/* ---- status bar / scrollbars ---- */
+QStatusBar { background: transparent; color: {{text}}; }
+QStatusBar QLabel { background: transparent; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 0; }
+QScrollBar::handle:vertical {
+    background: {{glass_border}}; border-radius: 5px; min-height: 24px;
+}
+QScrollBar::handle:vertical:hover { background: {{focus_border}}; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 0; }
+QScrollBar::handle:horizontal {
+    background: {{glass_border}}; border-radius: 5px; min-width: 24px;
+}
+QScrollBar::handle:horizontal:hover { background: {{focus_border}}; }
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+
+/* ---- lists / tables ---- */
+QListWidget, QListView {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px; color: {{text}}; outline: none;
+}
+QListWidget::item { padding: 6px 8px; border-radius: {{radius_control}}px; }
+QListWidget::item:selected { background: {{accent}}; color: {{accent_text}}; }
+QListWidget::item:hover { background: {{glass_surface_fake}}; }
+
+/* ---- settings window ---- */
+/* settingsNav = 左导航玻璃岛 */
+QListWidget#settingsNav {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px; font-size: 14px; padding-top: 8px;
+    margin: 4px;
+}
+QListWidget#settingsNav::item { padding: 10px 16px; margin: 2px 8px; border-radius: {{radius_control}}px; }
+/* Phase 7-fix1：设置导航选中态改苹果式"半透明灰底 + 左条"，区别于普通 list 实心选中 */
+QListWidget#settingsNav::item:selected {
+    background: {{selection_bg}}; color: {{text}};
+    border-left: 3px solid {{selection_left_bar}};
+}
+QLabel#pageTitle { font-size: 17px; font-weight: bold; color: {{text}}; }
+QLabel#hintLabel { color: {{sub_text}}; font-size: 12px; }
+QLabel#errorLabel { color: #D9433B; font-size: 12px; }
+QLabel#okLabel { color: #2E8B57; font-size: 12px; }
+
+/* ---- history sidebar ---- */
+/* Phase 7: dock + body 透明，让 MainWindow 的 Acrylic 透出，
+   QListWidget 等子控件的 glass_surface alpha 才能真正生效。 */
+QDockWidget#historyDock { background: transparent; color: {{text}}; }
+QWidget#historyBody { background: transparent; }
+QDockWidget#historyDock::title {
+    background: {{glass_surface}}; padding: 6px; text-align: left;
+    border-radius: {{radius_control}}px;
+}
+QListWidget#historyList { font-size: 12px; }
+
+/* ---- popup card (selection translate) ---- */
+QFrame#popupCard {
+    background: {{glass_surface}}; border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px;
+}
+QFrame#cardLine { color: {{glass_border}}; }
+QLabel#sourceLabel { color: {{sub_text}}; font-size: 12px; }
+QLabel#resultLabel { color: {{text}}; font-size: 14px; }
+QFrame#popupCard QPushButton {
+    border-radius: {{radius_control}}px; padding: 4px 12px; font-size: 12px;
+}
+
+/* ---- floating control bar (screen translate) ---- */
+ControlBar QPushButton {
+    background: {{glass_surface}}; color: {{text}};
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_control}}px; padding: 4px 10px; font-size: 12px;
+}
+ControlBar QPushButton:hover { background: {{accent}}; color: {{accent_text}}; border-color: {{accent}}; }
+
+/* ---- tabs / group boxes (settings forms) ---- */
+QGroupBox {
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px;
+    margin-top: 10px; color: {{text}};
+    background: {{glass_surface}};
+}
+QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px; }
+
+/* ---- Phase 7 新增容器 ---- */
+/* 玻璃岛（MainWindow 工具条悬浮岛） */
+QFrame#toolbarIsland {
+    background: {{glass_surface}};
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px;
+}
+/* 玻璃卡片容器（原文/译文） */
+/* Phase 7-fix1：sourceCard 用 glass_surface（0.42/0.40 alpha 通透），
+   resultCard 独立 result_card_surface（0.65/0.68 alpha）保证译文区可读性。
+   卡片提供玻璃面+描边+圆角，内部 edit 透明背景融入卡片，避免双层玻璃面叠加。 */
+QFrame#sourceCard {
+    background: {{glass_surface}};
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px;
+}
+QFrame#resultCard {
+    background: {{result_card_surface}};
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px;
+}
+/* 卡片内 edit 透明背景，描边由卡片提供；focus 时灰阶描边覆盖卡片描边
+   作为可达性提示。后代选择器优先级高于全局 QPlainTextEdit#resultEdit。 */
+QFrame#sourceCard QPlainTextEdit, QFrame#resultCard QPlainTextEdit {
+    background: transparent;
+    border: none;
+    border-radius: {{radius_card}}px;
+    padding: 10px;
+}
+QFrame#sourceCard QPlainTextEdit:focus, QFrame#resultCard QPlainTextEdit:focus {
+    border: 2px solid {{focus_border}};
+}
+/* 设置页表单卡片 */
+QFrame#formCard {
+    background: {{glass_surface}};
+    border: 1px solid {{glass_border}};
+    border-radius: {{radius_card}}px;
+}
+/* 状态点（绿成功/黄降级/红失败）— Phase 7-fix1 保留功能色白名单 */
+QLabel#statusDot {
+    background: #2E8B57; border-radius: 5px;
+    min-width: 10px; max-width: 10px;
+    min-height: 10px; max-height: 10px;
+}
+QLabel#statusDot[severity="warn"] { background: #E0A800; }
+QLabel#statusDot[severity="error"] { background: #D9433B; }

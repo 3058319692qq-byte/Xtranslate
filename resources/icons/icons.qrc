@@ -1,0 +1,30 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="copy.svg">svg/copy.svg</file>
+        <file alias="speak.svg">svg/speak.svg</file>
+        <file alias="favorite.svg">svg/favorite.svg</file>
+        <file alias="swap.svg">svg/swap.svg</file>
+        <file alias="shot-ocr.svg">svg/shot-ocr.svg</file>
+        <file alias="shot-translate.svg">svg/shot-translate.svg</file>
+        <file alias="replace.svg">svg/replace.svg</file>
+        <file alias="history.svg">svg/history.svg</file>
+        <file alias="settings.svg">svg/settings.svg</file>
+        <file alias="close.svg">svg/close.svg</file>
+        <file alias="retranslate.svg">svg/retranslate.svg</file>
+        <file alias="toggle.svg">svg/toggle.svg</file>
+        <file alias="eraser.svg">svg/eraser.svg</file>
+        <file alias="scene-input.svg">svg/scene-input.svg</file>
+        <file alias="scene-selection.svg">svg/scene-selection.svg</file>
+        <file alias="scene-replace.svg">svg/scene-replace.svg</file>
+        <file alias="scene-capture.svg">svg/scene-capture.svg</file>
+        <file alias="general.svg">svg/general.svg</file>
+        <file alias="hotkey.svg">svg/hotkey.svg</file>
+        <file alias="providers.svg">svg/providers.svg</file>
+        <file alias="ocr.svg">svg/ocr.svg</file>
+        <file alias="tts.svg">svg/tts.svg</file>
+        <file alias="proxy.svg">svg/proxy.svg</file>
+        <file alias="plugins.svg">svg/plugins.svg</file>
+        <file alias="about.svg">svg/about.svg</file>
+        <file alias="notifications.svg">svg/notifications.svg</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,207 @@
+/* XTranslate light theme - Phase 7-fix1 黑白灰高质感（reduce_transparency 回退用）。
+ * 主色已去橙改灰阶：accent=#111111（黑底白字反色按钮），accent_text=#FFFFFF。
+ * 次按钮=透明胶囊+secondary_button_border 描边；focus_border=#6B7280；
+ * 选中项=selection_bg rgba(0,0,0,0.06)+selection_left_bar #111111。
+ * Painted (non-widget) surfaces read the matching constants from
+ * ThemeManager::palette(); keep both in sync. */
+
+/* ---- base ---- */
+QMainWindow, QDialog { background: #FAF7F2; }
+QWidget#centralArea { background: #FAF7F2; }
+QLabel { color: #5C5347; }
+QToolTip {
+    background: #FFFFFF; color: #33291A;
+    border: 1px solid #E4DCD0; padding: 4px 8px;
+}
+
+/* ---- menus / menubar ---- */
+QMenuBar { background: #FAF7F2; color: #33291A; }
+QMenuBar::item { padding: 4px 10px; background: transparent; }
+QMenuBar::item:selected { background: rgba(0,0,0,0.06); border-radius: 4px; }
+QMenu { background: #FFFFFF; border: 1px solid #E4DCD0; padding: 4px; }
+QMenu::item { padding: 5px 24px 5px 16px; border-radius: 4px; color: #33291A; }
+QMenu::item:selected { background: #111111; color: #FFFFFF; }
+QMenu::item:disabled { color: #B8AFA0; }
+QMenu::separator { height: 1px; background: #EFE8DC; margin: 4px 8px; }
+
+/* ---- inputs ---- */
+QComboBox {
+    background: #FFFFFF; border: 1px solid #E4DCD0; border-radius: 8px;
+    padding: 4px 10px; min-width: 84px; color: #33291A;
+}
+QComboBox:hover { border-color: #6B7280; }
+QComboBox:disabled { background: #F0EBE2; color: #B8AFA0; }
+QComboBox::drop-down { border: none; width: 18px; }
+QComboBox QAbstractItemView {
+    background: #FFFFFF; border: 1px solid #E4DCD0;
+    selection-background-color: #111111; selection-color: #FFFFFF;
+    color: #33291A;
+}
+QLineEdit, QSpinBox, QKeySequenceEdit {
+    background: #FFFFFF; border: 1px solid #E4DCD0; border-radius: 8px;
+    padding: 4px 8px; color: #33291A; selection-background-color: #111111;
+    selection-color: #FFFFFF;
+}
+QLineEdit:focus, QSpinBox:focus, QKeySequenceEdit:focus { border-color: #6B7280; }
+QLineEdit:disabled, QSpinBox:disabled { background: #F0EBE2; color: #B8AFA0; }
+QPlainTextEdit, QTextEdit {
+    background: #FFFFFF; border: 1px solid #E4DCD0; border-radius: 12px;
+    padding: 10px; color: #33291A;
+    /* font-size 由 ConfigManager.ui.font 在运行时注入 */
+    selection-background-color: #111111; selection-color: #FFFFFF;
+}
+QPlainTextEdit:focus, QTextEdit:focus { border-color: #6B7280; }
+QPlainTextEdit#resultEdit { background: #F5F2EC; }
+QCheckBox, QRadioButton { color: #33291A; spacing: 6px; }
+QCheckBox:disabled, QRadioButton:disabled { color: #B8AFA0; }
+
+/* ---- buttons ---- */
+/* Phase 7-fix1：主按钮黑底白字反色按钮（苹果式） */
+QPushButton {
+    background: #111111; color: #FFFFFF; border: none; border-radius: 8px;
+    padding: 5px 14px; font-size: 13px;
+}
+QPushButton:hover { background: #2A2A2A; }
+QPushButton:pressed { background: #000000; }
+QPushButton:disabled { background: #E8E1D5; color: #A79E8F; }
+QPushButton:focus { border: 2px solid #6B7280; }
+/* shotButton = 次按钮：白底+灰描边+灰文字
+   Phase 7-fix2：描边提亮到 #6B7280（原 #D1D5DB 对比度不足） */
+QPushButton#shotButton {
+    background: #FFFFFF; color: #1F2937; border: 1px solid #6B7280;
+    border-radius: 8px; padding: 4px 12px; font-size: 13px;
+}
+QPushButton#shotButton:hover { background: #111111; color: #FFFFFF; }
+/* Phase 7-fix2：工具条 3 个 ComboBox 走次按钮同款底色+描边 */
+QComboBox#srcLangCombo, QComboBox#tgtLangCombo, QComboBox#providerCombo {
+    background: #FFFFFF; color: #1F2937; border: 1px solid #6B7280;
+    border-radius: 8px; padding: 4px 10px; min-width: 84px;
+}
+QComboBox#srcLangCombo:hover, QComboBox#tgtLangCombo:hover, QComboBox#providerCombo:hover {
+    border-color: #6B7280;
+}
+QComboBox#srcLangCombo:focus, QComboBox#tgtLangCombo:focus, QComboBox#providerCombo:focus {
+    border: 2px solid #6B7280;
+}
+QComboBox#srcLangCombo QAbstractItemView,
+QComboBox#tgtLangCombo QAbstractItemView,
+QComboBox#providerCombo QAbstractItemView {
+    background: #FFFFFF; border: 1px solid #6B7280;
+    selection-background-color: #111111; selection-color: #FFFFFF;
+    color: #33291A; border-radius: 8px; padding: 4px;
+}
+QPushButton#copyButton {
+    border-radius: 6px; font-size: 12px; padding: 2px 6px;
+}
+QPushButton#ghostButton {
+    background: transparent; color: #1F2937;
+    border: 1px solid #D1D5DB; border-radius: 8px;
+}
+QPushButton#ghostButton:hover { background: #111111; color: #FFFFFF; }
+QToolButton#swapButton {
+    background: #111111; color: #FFFFFF; border: none; border-radius: 8px;
+    font-size: 16px; padding: 2px 10px; min-height: 24px;
+}
+QToolButton#swapButton:hover { background: #2A2A2A; }
+/* iconButton = 图标胶囊（PopupCard/ControlBar/OcrResultDialog 上的图标钮）。
+   clearButton = 主窗原文卡片的"清空输入"图标钮（Phase 7-fix2b BUG9），
+   与 iconButton 同款胶囊样式（独立 objectName 是契约要求，样式同源）。 */
+QToolButton#iconButton, QPushButton#iconButton, QPushButton#clearButton {
+    background: #FFFFFF; color: #33291A;
+    border: 1px solid #E4DCD0; border-radius: 8px;
+    padding: 4px; min-width: 28px; min-height: 28px;
+}
+QToolButton#iconButton:hover, QPushButton#iconButton:hover,
+QPushButton#clearButton:hover {
+    background: #111111; color: #FFFFFF; border-color: #111111;
+}
+QToolButton#iconButton:pressed, QPushButton#iconButton:pressed,
+QPushButton#clearButton:pressed {
+    background: #000000; color: #FFFFFF;
+}
+QToolButton#iconButton:disabled, QPushButton#iconButton:disabled,
+QPushButton#clearButton:disabled {
+    background: #F0EBE2; color: #B8AFA0;
+}
+/* primaryIconButton = 主操作图标按钮 */
+QPushButton#primaryIconButton {
+    background: #111111; color: #FFFFFF; border: 1px solid #111111;
+    border-radius: 8px; padding: 4px; min-width: 28px; min-height: 28px;
+}
+QPushButton#primaryIconButton:hover { background: #2A2A2A; }
+QPushButton#primaryIconButton:pressed { background: #000000; }
+QPushButton#primaryIconButton:disabled { background: #E8E1D5; color: #A79E8F; }
+
+/* ---- status bar / scrollbars ---- */
+QStatusBar { background: #F3EDE3; }
+QScrollBar:vertical {
+    background: transparent; width: 10px; margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #D9CFC0; border-radius: 5px; min-height: 24px;
+}
+QScrollBar::handle:vertical:hover { background: #6B7280; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 0; }
+QScrollBar::handle:horizontal {
+    background: #D9CFC0; border-radius: 5px; min-width: 24px;
+}
+QScrollBar::handle:horizontal:hover { background: #6B7280; }
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+
+/* ---- lists / tables ---- */
+QListWidget, QListView {
+    background: #FFFFFF; border: 1px solid #E4DCD0; border-radius: 8px;
+    color: #33291A; outline: none;
+}
+QListWidget::item { padding: 6px 8px; border-radius: 6px; }
+QListWidget::item:selected { background: #111111; color: #FFFFFF; }
+QListWidget::item:hover { background: rgba(0,0,0,0.04); }
+
+/* ---- settings window ---- */
+QListWidget#settingsNav {
+    background: #F3EDE3; border: none; border-radius: 0;
+    font-size: 14px; padding-top: 8px;
+}
+QListWidget#settingsNav::item { padding: 10px 16px; margin: 2px 8px; }
+/* Phase 7-fix1：设置导航选中态改苹果式"半透明灰底 + 左条" */
+QListWidget#settingsNav::item:selected {
+    background: rgba(0,0,0,0.06); color: #33291A;
+    border-left: 3px solid #111111;
+}
+QLabel#pageTitle { font-size: 17px; font-weight: bold; color: #33291A; }
+QLabel#hintLabel { color: #8A8072; font-size: 12px; }
+QLabel#errorLabel { color: #D9433B; font-size: 12px; }
+QLabel#okLabel { color: #2E8B57; font-size: 12px; }
+
+/* ---- history sidebar ---- */
+QDockWidget#historyDock { color: #33291A; }
+QDockWidget#historyDock::title {
+    background: #F3EDE3; padding: 6px; text-align: left;
+}
+QListWidget#historyList { font-size: 12px; }
+
+/* ---- popup card (selection translate) ---- */
+QFrame#popupCard {
+    background: #FFFFFF; border: 1px solid #E4DCD0; border-radius: 12px;
+}
+QFrame#cardLine { color: #EFE8DC; }
+QLabel#sourceLabel { color: #8A8072; font-size: 12px; }
+QLabel#resultLabel { color: #33291A; font-size: 14px; }
+QFrame#popupCard QPushButton {
+    border-radius: 6px; padding: 4px 12px; font-size: 12px;
+}
+
+/* ---- floating control bar (screen translate) ---- */
+ControlBar QPushButton {
+    background: #3A3A3A; color: #F0F0F0; border: none;
+    border-radius: 6px; padding: 4px 10px; font-size: 12px;
+}
+ControlBar QPushButton:hover { background: #111111; color: #FFFFFF; }
+
+/* ---- tabs / group boxes (settings forms) ---- */
+QGroupBox {
+    border: 1px solid #E4DCD0; border-radius: 8px; margin-top: 10px;
+    color: #33291A;
+}
+QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px; }

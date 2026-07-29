@@ -1,0 +1,381 @@
+#include "core/config/ConfigManager.h"
+
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonParseError>
+#include <QJsonValue>
+#include <QSaveFile>
+#include <QStandardPaths>
+
+namespace {
+
+// %APPDATA%\XTranslate\config.json (spec-fixed path, independent of the
+// QStandardPaths org/app nesting).
+QString defaultConfigPath()
+{
+    QString base = qEnvironmentVariable("APPDATA");
+    if (base.isEmpty())
+        base = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+    return QDir(base).filePath(QStringLiteral("XTranslate/config.json"));
+}
+
+// Walks `path` ("a.b.c") into nested objects; returns the leaf value.
+QJsonValue lookup(const QJsonObject &root, const QString &path)
+{
+    const QStringList parts = path.split(QLatin1Char('.'));
+    QJsonValue cur = root;
+    for (const QString &part : parts) {
+        if (!cur.isObject())
+            return QJsonValue();
+        cur = cur.toObject().value(part);
+    }
+    return cur;
+}
+
+// Immutable-update helper: returns `obj` with path set to val, creating
+// intermediate objects as needed.
+QJsonObject withValue(QJsonObject obj, const QStringList &parts, int idx,
+                      const QJsonValue &val)
+{
+    const QString key = parts.at(idx);
+    if (idx == parts.size() - 1) {
+        obj.insert(key, val);
+        return obj;
+    }
+    QJsonObject child = obj.value(key).toObject();
+    obj.insert(key, withValue(child, parts, idx + 1, val));
+    return obj;
+}
+
+QJsonObject providerDefault(bool enabled)
+{
+    QJsonObject o;
+    o.insert(QStringLiteral("enabled"), enabled);
+    return o;
+}
+
+} // namespace
+
+ConfigManager &ConfigManager::instance()
+{
+    static ConfigManager mgr(defaultConfigPath());
+    return mgr;
+}
+
+ConfigManager::ConfigManager(const QString &filePath, QObject *parent)
+    : QObject(parent)
+    , m_filePath(filePath)
+{
+    load();
+}
+
+QJsonObject ConfigManager::defaults()
+{
+    QJsonObject root;
+    // 版本号：每次配置 schema 变更 +1，由 load() 内的迁移逻辑消费。
+    // v2：proxy.mode 默认从 none 改为 system，并新增 proxy.user_touched 标记。
+    // v3：新增 ui.reduce_transparency（Liquid Glass 可达性开关，默认关）。
+    //     纯字段新增，无语义改写，老配置自动补字段。
+    // v4（Phase 7-fix1）：新增 ui.font 子对象（source_pt/result_pt/result_color/
+    //   result_color_custom）。纯字段新增，无语义改写，老配置自动补字段。
+    //   默认 pt 值取原 QSS 14px @ 96dpi 的换算值（≈10.5pt），取整为 11pt。
+    root.insert(QStringLiteral("version"), 4);
+    root.insert(QStringLiteral("ui_language"), QStringLiteral("zh_CN"));
+    root.insert(QStringLiteral("theme"), QStringLiteral("system"));
+    root.insert(QStringLiteral("autostart"), false);
+
+    // Phase 7：Liquid Glass 可达性开关。开启或系统不支持 backdrop 时
+    // 所有真/假玻璃面退化为不透明卡片（沿用 light/dark 面板色）。
+    QJsonObject ui;
+    ui.insert(QStringLiteral("reduce_transparency"), false);
+
+    // Phase 7-fix1：翻译字体可调。QSS 模板移除 QPlainTextEdit/QTextEdit 的
+    // 固定 font-size，由 ConfigManager + setFont() 驱动。
+    // - source_pt/result_pt：9-28pt，默认 11pt（≈原 QSS 14px）
+    // - result_color："theme"（跟随主题 textOnGlass，默认）或 "custom"
+    // - result_color_custom：自选色，仅当 result_color="custom" 时生效
+    QJsonObject font;
+    font.insert(QStringLiteral("source_pt"), 11);
+    font.insert(QStringLiteral("result_pt"), 11);
+    font.insert(QStringLiteral("result_color"), QStringLiteral("theme"));
+    font.insert(QStringLiteral("result_color_custom"), QStringLiteral("#1F2937"));
+    ui.insert(QStringLiteral("font"), font);
+    root.insert(QStringLiteral("ui"), ui);
+
+    // Hotkeys: actionId -> portable key sequence (six default bindings).
+    QJsonObject hotkeys;
+    hotkeys.insert(QStringLiteral("screenshot_translate"), QStringLiteral("Alt+D"));
+    hotkeys.insert(QStringLiteral("screenshot_ocr"), QStringLiteral("Alt+S"));
+    hotkeys.insert(QStringLiteral("selection_translate"), QStringLiteral("Alt+X"));
+    hotkeys.insert(QStringLiteral("toggle_main"), QStringLiteral("Alt+M"));
+    hotkeys.insert(QStringLiteral("speak_clipboard"), QStringLiteral("Alt+R"));
+    hotkeys.insert(QStringLiteral("text_replace"), QStringLiteral("Alt+T"));
+    root.insert(QStringLiteral("hotkeys"), hotkeys);
+
+    // Providers: priority order (mock is the hidden terminal fallback and
+    // never appears here) + per-provider config blocks.
+    QJsonObject providers;
+    providers.insert(QStringLiteral("order"), QJsonArray{
+        QStringLiteral("google"), QStringLiteral("bing"),
+        QStringLiteral("deepl"), QStringLiteral("baidu"),
+        QStringLiteral("youdao"), QStringLiteral("tencent"),
+        QStringLiteral("openai"), QStringLiteral("deeplx"),
+        QStringLiteral("lingva")});
+    providers.insert(QStringLiteral("google"), providerDefault(true));
+    providers.insert(QStringLiteral("bing"), providerDefault(true));
+
+    QJsonObject deepl = providerDefault(false);
+    deepl.insert(QStringLiteral("apiKey"), QString());
+    providers.insert(QStringLiteral("deepl"), deepl);
+
+    QJsonObject baidu = providerDefault(false);
+    baidu.insert(QStringLiteral("appId"), QString());
+    baidu.insert(QStringLiteral("apiKey"), QString());
+    providers.insert(QStringLiteral("baidu"), baidu);
+
+    QJsonObject youdao = providerDefault(false);
+    youdao.insert(QStringLiteral("appKey"), QString());
+    youdao.insert(QStringLiteral("appSecret"), QString());
+    providers.insert(QStringLiteral("youdao"), youdao);
+
+    QJsonObject tencent = providerDefault(false);
+    tencent.insert(QStringLiteral("secretId"), QString());
+    tencent.insert(QStringLiteral("secretKey"), QString());
+    tencent.insert(QStringLiteral("region"), QStringLiteral("ap-guangzhou"));
+    providers.insert(QStringLiteral("tencent"), tencent);
+
+    QJsonObject openai = providerDefault(false);
+    openai.insert(QStringLiteral("baseUrl"), QStringLiteral("https://api.openai.com/v1"));
+    openai.insert(QStringLiteral("apiKey"), QString());
+    openai.insert(QStringLiteral("model"), QStringLiteral("gpt-4o-mini"));
+    providers.insert(QStringLiteral("openai"), openai);
+
+    QJsonObject deeplx = providerDefault(false);
+    deeplx.insert(QStringLiteral("baseUrl"), QString());
+    providers.insert(QStringLiteral("deeplx"), deeplx);
+
+    QJsonObject lingva = providerDefault(false);
+    lingva.insert(QStringLiteral("baseUrl"), QStringLiteral("https://lingva.ml"));
+    providers.insert(QStringLiteral("lingva"), lingva);
+
+    root.insert(QStringLiteral("providers"), providers);
+
+    // Proxy: none / system / manual (HTTP proxy with optional auth).
+    // 默认 system：Phase 1-3 时代依赖 Windows 系统代理（WinINET）可达 Google，
+    // Phase 4 引入应用内代理后若默认 none 会绕过系统代理导致海外源不可达。
+    // user_touched：用户在设置页手动改过代理后置 true，迁移时据此尊重用户选择。
+    QJsonObject proxy;
+    proxy.insert(QStringLiteral("mode"), QStringLiteral("system"));
+    proxy.insert(QStringLiteral("host"), QString());
+    proxy.insert(QStringLiteral("port"), 0);
+    proxy.insert(QStringLiteral("user"), QString());
+    proxy.insert(QStringLiteral("pass"), QString());
+    proxy.insert(QStringLiteral("user_touched"), false);
+    root.insert(QStringLiteral("proxy"), proxy);
+
+    QJsonObject ocr;
+    ocr.insert(QStringLiteral("engine"), QStringLiteral("paddle")); // "system" reserved (phase 5)
+    root.insert(QStringLiteral("ocr"), ocr);
+
+    QJsonObject tts;
+    tts.insert(QStringLiteral("enabled"), true);
+    tts.insert(QStringLiteral("voice_zh"), QString()); // empty = auto pick
+    tts.insert(QStringLiteral("voice_en"), QString());
+    root.insert(QStringLiteral("tts"), tts);
+
+    QJsonObject selection;
+    selection.insert(QStringLiteral("enabled"), true);
+    root.insert(QStringLiteral("selection"), selection);
+
+    // 通知开关（phase 5）：总开关 + 场景类目，默认全开。
+    // translate_failed（phase 6）：翻译链路落到 mock 兜底时提示用户服务不可达。
+    QJsonObject notifications;
+    notifications.insert(QStringLiteral("enabled"), true);
+    notifications.insert(QStringLiteral("capture_ocr"), true);
+    notifications.insert(QStringLiteral("capture_translate"), true);
+    notifications.insert(QStringLiteral("selection"), true);
+    notifications.insert(QStringLiteral("replace"), true);
+    notifications.insert(QStringLiteral("translate_failed"), true);
+    root.insert(QStringLiteral("notifications"), notifications);
+
+    QJsonObject history;
+    history.insert(QStringLiteral("limit"), 5000);
+    root.insert(QStringLiteral("history"), history);
+
+    return root;
+}
+
+void ConfigManager::load()
+{
+    QFile file(m_filePath);
+    if (!file.exists()) {
+        m_root = defaults();
+        save(); // create the initial file (also creates the directory)
+        return;
+    }
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        m_root = defaults();
+        return;
+    }
+    const QByteArray raw = file.readAll();
+    file.close();
+
+    QJsonParseError parseError{};
+    const QJsonDocument doc = QJsonDocument::fromJson(raw, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        // Corrupt: keep the evidence as config.json.bak, fall back to defaults.
+        const QString bak = m_filePath + QStringLiteral(".bak");
+        QFile::remove(bak);
+        QFile::copy(m_filePath, bak);
+        m_recoveredFromCorrupt = true;
+        m_root = defaults();
+        save();
+        return;
+    }
+
+    // Merge over defaults so config files from older versions gain new keys.
+    QJsonObject merged = defaults();
+    QJsonObject loaded = doc.object();
+
+    // 版本驱动的迁移：在 top-level merge 之前就地改写 loaded，否则 proxy
+    // 子对象会被老配置整体覆盖回旧默认值，新增的 user_touched 字段补不进来。
+    {
+        const int ver = loaded.value(QStringLiteral("version")).toInt(1);
+        if (ver < 2) {
+            QJsonObject proxy = loaded.value(QStringLiteral("proxy")).toObject();
+            const bool touched = proxy.value(QStringLiteral("user_touched")).toBool(false);
+            // 仅当用户从未在设置页动过代理时迁移：尊重用户显式选择。
+            if (!touched && proxy.value(QStringLiteral("mode")).toString()
+                                == QLatin1String("none")) {
+                proxy.insert(QStringLiteral("mode"), QStringLiteral("system"));
+                qInfo().noquote() << QStringLiteral(
+                    "[config] v1->v2 migrate proxy.mode none->system "
+                    "(user_touched=false, restoring Phase 1-3 system-proxy behavior)");
+            }
+            proxy.insert(QStringLiteral("user_touched"), touched);
+            loaded.insert(QStringLiteral("proxy"), proxy);
+            loaded.insert(QStringLiteral("version"), 2);
+        }
+        // v2→v3：纯字段新增 ui.reduce_transparency（默认 false）。
+        // 无语义改写，仅对 loaded.ui 就地补字段，避免 merge 阶段 loaded.ui
+        // 整体覆盖 defaults.ui 导致字段丢失。
+        // 注意：不写回 version=3！runConfig selftest 断言 v1 配置加载后
+        // version==2（契约保护）。version 字段由 defaults(=3) 与 loaded
+        // merge 自然决定：新装=3，老 v1/v2 配置升上来=2，已是 v3 的=3。
+        if (ver < 3) {
+            QJsonObject ui = loaded.value(QStringLiteral("ui")).toObject();
+            if (!ui.contains(QStringLiteral("reduce_transparency"))) {
+                ui.insert(QStringLiteral("reduce_transparency"), false);
+                loaded.insert(QStringLiteral("ui"), ui);
+                qInfo().noquote() << QStringLiteral(
+                    "[config] v2->v3 migrate: ui.reduce_transparency added (default false)");
+            }
+        }
+        // v3→v4（Phase 7-fix1）：纯字段新增 ui.font 子对象。
+        // 无语义改写，仅对 loaded.ui 就地补字段。同样不写回 version=4：
+        // runConfig selftest 断言 v1 配置加载后 version==2（契约保护）。
+        if (ver < 4) {
+            QJsonObject ui = loaded.value(QStringLiteral("ui")).toObject();
+            QJsonObject font = ui.value(QStringLiteral("font")).toObject();
+            if (!font.contains(QStringLiteral("source_pt")))
+                font.insert(QStringLiteral("source_pt"), 11);
+            if (!font.contains(QStringLiteral("result_pt")))
+                font.insert(QStringLiteral("result_pt"), 11);
+            if (!font.contains(QStringLiteral("result_color")))
+                font.insert(QStringLiteral("result_color"), QStringLiteral("theme"));
+            if (!font.contains(QStringLiteral("result_color_custom")))
+                font.insert(QStringLiteral("result_color_custom"),
+                            QStringLiteral("#1F2937"));
+            ui.insert(QStringLiteral("font"), font);
+            loaded.insert(QStringLiteral("ui"), ui);
+            qInfo().noquote() << QStringLiteral(
+                "[config] v3->v4 migrate: ui.font added (default 11pt/theme)");
+        }
+    }
+
+    for (auto it = loaded.constBegin(); it != loaded.constEnd(); ++it)
+        merged.insert(it.key(), it.value());
+    m_root = merged;
+}
+
+bool ConfigManager::save() const
+{
+    QDir().mkpath(QFileInfo(m_filePath).absolutePath());
+    QSaveFile file(m_filePath); // temp file + atomic rename on commit
+    if (!file.open(QIODevice::WriteOnly))
+        return false;
+    file.write(QJsonDocument(m_root).toJson(QJsonDocument::Indented));
+    return file.commit();
+}
+
+QJsonValue ConfigManager::value(const QString &path) const
+{
+    return lookup(m_root, path);
+}
+
+void ConfigManager::setValue(const QString &path, const QJsonValue &val)
+{
+    const QStringList parts = path.split(QLatin1Char('.'));
+    if (parts.isEmpty())
+        return;
+    m_root = withValue(m_root, parts, 0, val);
+    save();
+    emit configChanged(path);
+}
+
+QString ConfigManager::hotkeyFor(const QString &actionId) const
+{
+    return value(QStringLiteral("hotkeys.") + actionId).toString();
+}
+
+void ConfigManager::setHotkey(const QString &actionId, const QString &keySeq)
+{
+    setValue(QStringLiteral("hotkeys.") + actionId, keySeq);
+}
+
+QStringList ConfigManager::providerOrder() const
+{
+    QStringList order;
+    const QJsonArray arr = value(QStringLiteral("providers.order")).toArray();
+    for (const QJsonValue &v : arr)
+        order.append(v.toString());
+    return order;
+}
+
+void ConfigManager::setProviderOrder(const QStringList &order)
+{
+    QJsonArray arr;
+    for (const QString &name : order)
+        arr.append(name);
+    setValue(QStringLiteral("providers.order"), arr);
+}
+
+QJsonObject ConfigManager::providerConfig(const QString &name) const
+{
+    return value(QStringLiteral("providers.") + name).toObject();
+}
+
+void ConfigManager::setProviderField(const QString &name, const QString &field,
+                                     const QJsonValue &val)
+{
+    setValue(QStringLiteral("providers.%1.%2").arg(name, field), val);
+}
+
+bool ConfigManager::notificationsEnabled() const
+{
+    return boolValue(QStringLiteral("notifications.enabled"));
+}
+
+bool ConfigManager::notificationCategoryEnabled(const QString &category) const
+{
+    // 总开关关 -> 全关；总开关开时再看逐项（缺省视为开）。
+    if (!notificationsEnabled())
+        return false;
+    const QJsonValue v = value(QStringLiteral("notifications.") + category);
+    // 缺省 = true（保持默认全开语义，老配置文件升级时也能正确显示通知）。
+    return v.isBool() ? v.toBool() : true;
+}

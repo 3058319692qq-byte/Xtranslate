@@ -1,0 +1,67 @@
+// VERSIONINFO.rc - Windows version info resource (phase 5).
+// Embedded into XTranslate.exe; visible via Properties -> Details.
+// File and product versions follow CMakeLists.txt VERSION 0.6.3 -> 0,6,3,0.
+//
+// NOTE: rc.exe via cmcldeps wraps cl.exe preprocessing, which by default
+// parses .rc with the system ACP. UTF-8 multi-byte sequences get mis-decoded
+// and break keyword parsing. Keep this file pure ASCII; localized product
+// name surfaces at runtime via Qt translation files instead.
+
+#include <windows.h>
+
+// Phase 8: exe 嵌入应用图标（资源管理器/任务栏显示）。
+// app.ico 由 installer\gen_app_icon.ps1 生成，pack 流程会复制到 resources\app.ico。
+// rc.exe 相对路径基于本 .rc 文件所在目录，故引用同目录 "app.ico"。
+IDI_ICON1 ICON "app.ico"
+
+#define VER_MAJOR 0
+#define VER_MINOR 7
+#define VER_PATCH 0
+#define VER_BUILD 0
+
+#define STRINGIFY2(x) #x
+#define STRINGIFY(x) STRINGIFY2(x)
+#define VER_FILE_STR STRINGIFY(VER_MAJOR) "." STRINGIFY(VER_MINOR) "." STRINGIFY(VER_PATCH) "." STRINGIFY(VER_BUILD)
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    VER_MAJOR,VER_MINOR,VER_PATCH,VER_BUILD
+PRODUCTVERSION VER_MAJOR,VER_MINOR,VER_PATCH,VER_BUILD
+FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+FILEFLAGS      0
+FILEOS         VOS_NT_WINDOWS32
+FILETYPE       VFT_APP
+FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        // Simplified Chinese (0x0804) + UTF-16LE (0x04B0) and English (0x0409).
+        // Both blocks intentionally use ASCII-only values so cmcldeps' cl.exe
+        // preprocessing does not mis-decode multibyte content under system ACP.
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "CompanyName",      "XTranslate"
+            VALUE "FileDescription",  "XTranslate - screen translation tool"
+            VALUE "FileVersion",      VER_FILE_STR
+            VALUE "InternalName",     "XTranslate"
+            VALUE "LegalCopyright",   "Learning-purpose replica project, for study only."
+            VALUE "OriginalFilename", "XTranslate.exe"
+            VALUE "ProductName",      "XTranslate"
+            VALUE "ProductVersion",   VER_FILE_STR
+        END
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "XTranslate"
+            VALUE "FileDescription",  "XTranslate - screen translation tool"
+            VALUE "FileVersion",      VER_FILE_STR
+            VALUE "InternalName",     "XTranslate"
+            VALUE "LegalCopyright",   "Learning-purpose replica project, for study only."
+            VALUE "OriginalFilename", "XTranslate.exe"
+            VALUE "ProductName",      "XTranslate"
+            VALUE "ProductVersion",   VER_FILE_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0804, 0x04B0, 0x0409, 0x04B0
+    END
+END
