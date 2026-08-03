@@ -93,12 +93,14 @@ powershell -ExecutionPolicy Bypass -File tools/pack_installer.ps1
 
 ## 翻译服务
 
-内置 10 个翻译 provider，按优先级自动调度，失败自动降级：
+内置 12 个翻译 provider，按优先级自动调度，失败自动降级：
 
 | 服务 | 是否需密钥 | 说明 |
 |------|-----------|------|
-| Google | 否 | 免费网页接口 |
-| Bing | 否 | 免费网页接口 |
+| 火山翻译 | 否 | 免费 Web 接口，国内直连，支持 auto 源语言检测（默认置顶） |
+| Google | 否 | 免费网页接口，需可访问 Google 的网络环境 |
+| MyMemory | 否 | 免费备用源；不支持 auto 源语言，匿名配额约 5000 字符/天 |
+| Bing | 否 | ⚠️ 免费授权端点已被微软下线（HTTP 404），保留但默认排后 |
 | Lingva | 否 | 需实例地址 |
 | DeepLX | 否 | 需实例地址 |
 | Mock | 否 | 离线兜底，返回 `[MOCK] <text>` |
@@ -108,7 +110,7 @@ powershell -ExecutionPolicy Bypass -File tools/pack_installer.ps1
 | 腾讯云 TMT | 是 | SecretId + SecretKey |
 | OpenAI 兼容 | 是 | baseUrl + API Key + 模型 |
 
-在 **设置 → 翻译服务** 中配置密钥与优先级。
+在 **设置 → 翻译服务** 中配置密钥与优先级。老版本升级后配置自动迁移：火山翻译/MyMemory 自动补齐并置顶，无需手动操作。
 
 ## 朗读（TTS）
 
