@@ -350,6 +350,10 @@
         <source>设置</source>
         <translation type="unfinished">设置</translation>
     </message>
+    <message>
+        <source>火山翻译</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>OcrResultDialog</name>
@@ -951,6 +955,14 @@
     <message>
         <source>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</source>
         <translation>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</translation>
+    </message>
+    <message>
+        <source>火山翻译（免费）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MyMemory（免费）</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

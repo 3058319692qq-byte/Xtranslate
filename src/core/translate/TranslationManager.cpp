@@ -8,8 +8,10 @@
 #include "core/translate/providers/DeepLTranslator.h"
 #include "core/translate/providers/DeepLxTranslator.h"
 #include "core/translate/providers/LingvaTranslator.h"
+#include "core/translate/providers/MyMemoryTranslator.h"
 #include "core/translate/providers/OpenAiCompatTranslator.h"
 #include "core/translate/providers/TencentTranslator.h"
+#include "core/translate/providers/VolcanoTranslator.h"
 #include "core/translate/providers/YoudaoTranslator.h"
 
 #include <QElapsedTimer>
@@ -41,6 +43,9 @@ TranslationManager::TranslationManager()
     m_providers.push_back(std::make_unique<OpenAiCompatTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<DeepLxTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<LingvaTranslator>(m_nam.get()));
+    // 2026-08：Bing 免费 token 端点被微软下线（404）后新增的免密钥替代源。
+    m_providers.push_back(std::make_unique<VolcanoTranslator>(m_nam.get()));
+    m_providers.push_back(std::make_unique<MyMemoryTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<MockTranslator>());
     m_mock = m_providers.back().get();
 

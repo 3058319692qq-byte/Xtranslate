@@ -349,6 +349,10 @@ Provider: %3</translation>
         <source>设置</source>
         <translation type="unfinished">Settings</translation>
     </message>
+    <message>
+        <source>火山翻译</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>OcrResultDialog</name>
@@ -948,6 +952,14 @@ Provider: %3</translation>
     <message>
         <source>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</source>
         <translation>No system speech engine is available on this machine; the cloud (Edge) engine still works, but cannot fall back to a local voice on failure.</translation>
+    </message>
+    <message>
+        <source>火山翻译（免费）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MyMemory（免费）</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

@@ -117,14 +117,19 @@ QJsonObject ConfigManager::defaults()
 
     // Providers: priority order (mock is the hidden terminal fallback and
     // never appears here) + per-provider config blocks.
+    // 2026-08：Bing 免费 token 端点被微软下线（edge.microsoft.com/translate/auth
+    // 返回 404），Google 需翻墙；火山翻译/MyMemory 作为免密钥国内直连源置顶。
     QJsonObject providers;
     providers.insert(QStringLiteral("order"), QJsonArray{
-        QStringLiteral("google"), QStringLiteral("bing"),
+        QStringLiteral("volcano"), QStringLiteral("google"),
+        QStringLiteral("mymemory"), QStringLiteral("bing"),
         QStringLiteral("deepl"), QStringLiteral("baidu"),
         QStringLiteral("youdao"), QStringLiteral("tencent"),
         QStringLiteral("openai"), QStringLiteral("deeplx"),
         QStringLiteral("lingva")});
+    providers.insert(QStringLiteral("volcano"), providerDefault(true));
     providers.insert(QStringLiteral("google"), providerDefault(true));
+    providers.insert(QStringLiteral("mymemory"), providerDefault(true));
     providers.insert(QStringLiteral("bing"), providerDefault(true));
 
     QJsonObject deepl = providerDefault(false);
@@ -316,6 +321,32 @@ void ConfigManager::load()
             loaded.insert(QStringLiteral("ui"), ui);
             qInfo().noquote() << QStringLiteral(
                 "[config] v3->v4 migrate: ui.font added (default 11pt/theme)");
+        }
+        // 2026-08 免密钥新源补全：老配置的 providers 子对象会在 merge 阶段
+        // 整体覆盖 defaults，新 provider 块补不进来，故在 loaded 上就地补齐：
+        // 缺 volcano/mymemory 配置块则按默认新增，并把缺失的名字插到 order
+        // 最前（火山直连快，置顶可避开已失效的 bing/需翻墙的 google）。
+        // 不写回 version：config_atomic_test 的 version 契约保持不变。
+        {
+            QJsonObject prov = loaded.value(QStringLiteral("providers")).toObject();
+            QJsonArray order = prov.value(QStringLiteral("order")).toArray();
+            bool changed = false;
+            const char *newcomers[] = {"volcano", "mymemory"};
+            for (const char *nm_ : newcomers) {
+                const QString nm = QString::fromLatin1(nm_);
+                if (!prov.contains(nm)) {
+                    prov.insert(nm, providerDefault(true));
+                    order.prepend(QJsonValue(nm));
+                    changed = true;
+                }
+            }
+            if (changed) {
+                prov.insert(QStringLiteral("order"), order);
+                loaded.insert(QStringLiteral("providers"), prov);
+                qInfo().noquote() << QStringLiteral(
+                    "[config] providers migrate: volcano/mymemory added "
+                    "(Bing free endpoint decommissioned, HTTP 404)");
+            }
         }
     }
 

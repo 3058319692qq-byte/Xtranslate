@@ -69,7 +69,9 @@ void fillLangCombo(QComboBox *combo, bool withAuto)
 struct ProviderEntry { const char *key; const char *label; };
 const ProviderEntry kProviders[] = {
     {"auto",    QT_TRANSLATE_NOOP("MainWindow", "自动")},
+    {"volcano", QT_TRANSLATE_NOOP("MainWindow", "火山翻译")},
     {"google",  "Google"},
+    {"mymemory","MyMemory"},
     {"bing",    "Bing"},
     {"deepl",   "DeepL"},
     {"baidu",   QT_TRANSLATE_NOOP("MainWindow", "百度翻译")},

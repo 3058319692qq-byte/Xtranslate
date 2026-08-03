@@ -230,12 +230,16 @@ int runTranslate(const QStringList &args)
     // Phase 6-tuning：强制 proxy=system 还原 Phase 1-3 系统代理行为，
     // 并强制 provider=google 验证 Google 真可达（而非 mock 兜底误判 pass）。
     // 用 setValue 触发 configChanged 信号让 TranslationManager 重新 apply 代理。
+    // 2026-08：第 4 个可选参数指定 provider（默认 google，契约不变），
+    // 便于验证新接入的免密钥源（volcano/mymemory 等）。
+    const QString forcedProvider =
+        args.value(3, QStringLiteral("google"));
     ConfigManager::instance().setValue(QStringLiteral("proxy.mode"),
                                        QStringLiteral("system"));
 
     const QFuture<ManagedTransResult> future =
         TranslationManager::instance().translate(text, from, to,
-                                                 QStringLiteral("google"));
+                                                 forcedProvider);
 
     // The provider chain completes via network signals -> pump an event loop.
     QEventLoop loop;
@@ -257,11 +261,11 @@ int runTranslate(const QStringList &args)
                QJsonArray::fromStringList(r.errorChain));
     printJsonLine(obj);
 
-    // 严格契约：必须由 google 真成功，network_ok=true，不能落到 mock。
+    // 严格契约：必须由指定 provider 真成功，network_ok=true，不能落到 mock。
     // 这是 Phase 6-tuning 的核心目标：proxy=system 下 Google 必须可达。
     const bool pass = r.result.error.isEmpty()
         && !r.result.text.isEmpty()
-        && r.result.provider == QLatin1String("google")
+        && r.result.provider == forcedProvider
         && networkOk;
     return pass ? 0 : 1;
 }

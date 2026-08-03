@@ -74,7 +74,7 @@ QList<FieldSpec> fieldsFor(const QString &provider)
         return {{"baseUrl", QT_TRANSLATE_NOOP("SettingsWindow", "接口地址"), false}};
     if (provider == QLatin1String("lingva"))
         return {{"baseUrl", QT_TRANSLATE_NOOP("SettingsWindow", "实例地址"), false}};
-    return {}; // google / bing: key-free
+    return {}; // google / bing / volcano / mymemory: key-free
 }
 
 QLabel *makePageTitle(const QString &text, QWidget *parent)
@@ -532,6 +532,8 @@ void SettingsWindow::restoreDefaultHotkeys()
 QString SettingsWindow::providerDisplayName(const QString &name)
 {
     if (name == QLatin1String("google")) return tr("Google（免费）");
+    if (name == QLatin1String("volcano")) return tr("火山翻译（免费）");
+    if (name == QLatin1String("mymemory")) return tr("MyMemory（免费）");
     if (name == QLatin1String("bing"))   return tr("Bing（免费）");
     if (name == QLatin1String("deepl"))  return QStringLiteral("DeepL");
     if (name == QLatin1String("baidu"))  return tr("百度翻译");

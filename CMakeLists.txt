@@ -95,8 +95,10 @@ add_executable(XTranslate WIN32
     src/core/translate/providers/DeepLTranslator.cpp
     src/core/translate/providers/DeepLxTranslator.cpp
     src/core/translate/providers/LingvaTranslator.cpp
+    src/core/translate/providers/MyMemoryTranslator.cpp
     src/core/translate/providers/OpenAiCompatTranslator.cpp
     src/core/translate/providers/TencentTranslator.cpp
+    src/core/translate/providers/VolcanoTranslator.cpp
     src/core/translate/providers/YoudaoTranslator.cpp
     src/core/tts/EdgeTtsProvider.cpp
     src/core/tts/TtsManager.cpp
@@ -195,3 +197,29 @@ add_custom_command(TARGET XTranslate POST_BUILD
         "${XTRANSLATE_MODELS_SRC}"
         "$<TARGET_FILE_DIR:XTranslate>/models"
     COMMENT "Deploying OCR models -> $<TARGET_FILE_DIR:XTranslate>/models")
+
+# ---------------------------------------------------------------------------
+# Tests (ctest, VS-bundled cmake/ctest - see build.ps1 tool paths).
+# Minimal focused test layer: standalone console executables per core path,
+# fully independent of the XTranslate WIN32 target and its --selftest
+# contract (AttachConsole + one JSON line + exit code stay untouched).
+# ---------------------------------------------------------------------------
+enable_testing()
+
+# config core path: atomic write (QSaveFile) + corruption fallback (.bak).
+add_executable(ConfigAtomicTest
+    tests/config_atomic_test.cpp
+    src/core/config/ConfigManager.cpp)
+target_include_directories(ConfigAtomicTest PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(ConfigAtomicTest PRIVATE Qt6::Core)
+if(MSVC)
+    target_compile_options(ConfigAtomicTest PRIVATE /utf-8)
+endif()
+
+add_test(NAME config_atomic COMMAND ConfigAtomicTest)
+# Qt6Core.dll must be resolvable even before windeployqt has populated
+# build/bin (ctest may run right after the compile step).
+get_target_property(_qt_core_dll Qt6::Core LOCATION)
+get_filename_component(_qt_bin_dir "${_qt_core_dll}" DIRECTORY)
+set_tests_properties(config_atomic PROPERTIES
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${_qt_bin_dir}")
