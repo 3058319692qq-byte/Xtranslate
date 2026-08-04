@@ -7,16 +7,16 @@
 #include "core/translate/providers/BaiduTranslator.h"
 #include "core/translate/providers/DeepLTranslator.h"
 #include "core/translate/providers/DeepLxTranslator.h"
-#include "core/translate/providers/LingvaTranslator.h"
 #include "core/translate/providers/MyMemoryTranslator.h"
 #include "core/translate/providers/OpenAiCompatTranslator.h"
 #include "core/translate/providers/TencentTranslator.h"
-#include "core/translate/providers/VolcanoTranslator.h"
 #include "core/translate/providers/YoudaoTranslator.h"
+#include "core/translate/providers/ZhipuTranslator.h"
 
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
+#include <QNetworkCookieJar>
 #include <QNetworkProxy>
 #include <QNetworkProxyFactory>
 #include <QPromise>
@@ -32,6 +32,10 @@ TranslationManager &TranslationManager::instance()
 TranslationManager::TranslationManager()
     : m_nam(std::make_unique<QNetworkAccessManager>())
 {
+    // Cookie jar：Bing 网页翻译（ttranslatev3）依赖页面会话 cookie，
+    // 否则高频调用易触发 401 风控。共享 jar 对其它 provider 无副作用。
+    m_nam->setCookieJar(new QNetworkCookieJar(m_nam.get()));
+
     // Registry (order here is only the fallback when the config order is
     // incomplete; scheduling uses ConfigManager's priority list).
     m_providers.push_back(std::make_unique<GoogleFreeTranslator>(m_nam.get()));
@@ -41,10 +45,9 @@ TranslationManager::TranslationManager()
     m_providers.push_back(std::make_unique<YoudaoTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<TencentTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<OpenAiCompatTranslator>(m_nam.get()));
+    m_providers.push_back(std::make_unique<ZhipuTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<DeepLxTranslator>(m_nam.get()));
-    m_providers.push_back(std::make_unique<LingvaTranslator>(m_nam.get()));
     // 2026-08：Bing 免费 token 端点被微软下线（404）后新增的免密钥替代源。
-    m_providers.push_back(std::make_unique<VolcanoTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<MyMemoryTranslator>(m_nam.get()));
     m_providers.push_back(std::make_unique<MockTranslator>());
     m_mock = m_providers.back().get();

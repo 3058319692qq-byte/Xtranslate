@@ -53,10 +53,23 @@ QFuture<TransResult> GoogleFreeTranslator::translate(const QString &text,
         result.provider = QStringLiteral("google");
         result.elapsedMs = timer->elapsed();
 
-        if (reply->error() != QNetworkReply::NoError) {
+        // 2026-08：Google 对 client=gtx 免 token 端点大规模风控，代理/数据
+        // 中心 IP 会被 302 到 www.google.com/sorry（验证码页）。识别并给出
+        // 清晰错误，避免"network error"这类误导性提示。
+        const int status = reply->attribute(
+            QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray body = reply->readAll();
+        const bool captcha =
+            (status >= 300 && status < 400)
+            && reply->rawHeader("Location").contains("/sorry/");
+        if (captcha || body.contains("sorry/index")) {
+            result.error = QStringLiteral(
+                "google: blocked by Google anti-bot (captcha redirect). "
+                "Free gtx endpoint rejects proxy/VPN IPs; use residential "
+                "IP or another provider");
+        } else if (reply->error() != QNetworkReply::NoError) {
             result.error = QStringLiteral("google: %1").arg(reply->errorString());
         } else {
-            const QByteArray body = reply->readAll();
             QJsonParseError parseError{};
             const QJsonDocument doc = QJsonDocument::fromJson(body, &parseError);
             if (parseError.error != QJsonParseError::NoError || !doc.isArray()) {

@@ -350,7 +350,7 @@ Provider: %3</translation>
         <translation type="unfinished">Settings</translation>
     </message>
     <message>
-        <source>火山翻译</source>
+        <source>智谱 GLM</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -501,7 +501,7 @@ Provider: %3</translation>
     </message>
     <message>
         <source>实例地址</source>
-        <translation>Instance URL</translation>
+        <translation type="vanished">Instance URL</translation>
     </message>
     <message>
         <source>设置 - X翻译</source>
@@ -954,11 +954,11 @@ Provider: %3</translation>
         <translation>No system speech engine is available on this machine; the cloud (Edge) engine still works, but cannot fall back to a local voice on failure.</translation>
     </message>
     <message>
-        <source>火山翻译（免费）</source>
+        <source>MyMemory（免费）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>MyMemory（免费）</source>
+        <source>智谱 GLM（免费）</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

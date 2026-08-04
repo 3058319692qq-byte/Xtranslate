@@ -69,17 +69,16 @@ void fillLangCombo(QComboBox *combo, bool withAuto)
 struct ProviderEntry { const char *key; const char *label; };
 const ProviderEntry kProviders[] = {
     {"auto",    QT_TRANSLATE_NOOP("MainWindow", "自动")},
-    {"volcano", QT_TRANSLATE_NOOP("MainWindow", "火山翻译")},
+    {"bing",    "Bing"},
     {"google",  "Google"},
     {"mymemory","MyMemory"},
-    {"bing",    "Bing"},
     {"deepl",   "DeepL"},
     {"baidu",   QT_TRANSLATE_NOOP("MainWindow", "百度翻译")},
     {"youdao",  QT_TRANSLATE_NOOP("MainWindow", "有道智云")},
     {"tencent", QT_TRANSLATE_NOOP("MainWindow", "腾讯云 TMT")},
     {"openai",  QT_TRANSLATE_NOOP("MainWindow", "OpenAI 兼容")},
+    {"zhipu",   QT_TRANSLATE_NOOP("MainWindow", "智谱 GLM")},
     {"deeplx",  "DeepLX"},
-    {"lingva",  "Lingva"},
 };
 
 } // namespace

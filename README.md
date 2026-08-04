@@ -97,20 +97,19 @@ powershell -ExecutionPolicy Bypass -File tools/pack_installer.ps1
 
 | 服务 | 是否需密钥 | 说明 |
 |------|-----------|------|
-| 火山翻译 | 否 | 免费 Web 接口，国内直连，支持 auto 源语言检测（默认置顶） |
-| Google | 否 | 免费网页接口，需可访问 Google 的网络环境 |
-| MyMemory | 否 | 免费备用源；不支持 auto 源语言，匿名配额约 5000 字符/天 |
-| Bing | 否 | ⚠️ 免费授权端点已被微软下线（HTTP 404），保留但默认排后 |
-| Lingva | 否 | 需实例地址 |
+| Bing | 否 | Bing 网页版 `ttranslatev3` 端点，**国内直连免密钥**，默认置顶 |
+| Google | 否 | 免费网页接口；需可访问 Google 的网络环境。⚠️ 2025 年起 Google 对免密钥端点风控，代理/VPN 与数据中心 IP 会被跳转反爬验证码页，需住宅 IP |
+| MyMemory | 否 | 免费备用源；不支持 auto 源语言，部分语言对（如 en↔ja）返回空 |
+| 智谱 GLM | 是 | **智谱 GLM-4-Flash（永久免费 LLM 模型，国内直连）**，OpenAI 兼容协议，翻译质量为全源最佳 |
 | DeepLX | 否 | 需实例地址 |
 | Mock | 否 | 离线兜底，返回 `[MOCK] <text>` |
 | DeepL | 是 | Auth Key |
 | 百度翻译 | 是 | AppId + 密钥 |
 | 有道智云 | 是 | 应用 ID + 密钥 |
 | 腾讯云 TMT | 是 | SecretId + SecretKey |
-| OpenAI 兼容 | 是 | baseUrl + API Key + 模型 |
+| OpenAI 兼容 | 是 | baseUrl + API Key + 模型（可配置任意 OpenAI 兼容服务） |
 
-在 **设置 → 翻译服务** 中配置密钥与优先级。老版本升级后配置自动迁移：火山翻译/MyMemory 自动补齐并置顶，无需手动操作。
+在 **设置 → 翻译服务** 中配置密钥与优先级。老版本升级后配置自动迁移：Bing 置顶启用，Google 默认禁用（需翻墙），已移除失效的火山翻译 / Lingva，自动补齐智谱 GLM 配置，无需手动操作。
 
 ## 朗读（TTS）
 

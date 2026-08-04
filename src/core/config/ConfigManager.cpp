@@ -117,18 +117,19 @@ QJsonObject ConfigManager::defaults()
 
     // Providers: priority order (mock is the hidden terminal fallback and
     // never appears here) + per-provider config blocks.
-    // 2026-08：Bing 免费 token 端点被微软下线（edge.microsoft.com/translate/auth
-    // 返回 404），Google 需翻墙；火山翻译/MyMemory 作为免密钥国内直连源置顶。
+    // 2026-08：火山 crx 端点全语言 Bad Request、lingva.ml 被 Cloudflare 拦截，
+    // 已移除；Bing 免费 token 端点（edge.microsoft.com/translate/auth）被微软
+    // 下线（404），改用 Bing 网页版 ttranslatev3（国内直连免密钥）置顶。
+    // google 保留代码但默认禁用：需翻墙，未挂代理时每次 3s 超时拖慢链路。
     QJsonObject providers;
     providers.insert(QStringLiteral("order"), QJsonArray{
-        QStringLiteral("volcano"), QStringLiteral("google"),
-        QStringLiteral("mymemory"), QStringLiteral("bing"),
+        QStringLiteral("bing"), QStringLiteral("google"),
+        QStringLiteral("mymemory"),
         QStringLiteral("deepl"), QStringLiteral("baidu"),
         QStringLiteral("youdao"), QStringLiteral("tencent"),
-        QStringLiteral("openai"), QStringLiteral("deeplx"),
-        QStringLiteral("lingva")});
-    providers.insert(QStringLiteral("volcano"), providerDefault(true));
-    providers.insert(QStringLiteral("google"), providerDefault(true));
+        QStringLiteral("openai"), QStringLiteral("zhipu"),
+        QStringLiteral("deeplx")});
+    providers.insert(QStringLiteral("google"), providerDefault(false));
     providers.insert(QStringLiteral("mymemory"), providerDefault(true));
     providers.insert(QStringLiteral("bing"), providerDefault(true));
 
@@ -158,13 +159,17 @@ QJsonObject ConfigManager::defaults()
     openai.insert(QStringLiteral("model"), QStringLiteral("gpt-4o-mini"));
     providers.insert(QStringLiteral("openai"), openai);
 
+    // 2026-08：智谱 GLM-4-Flash 永久免费 + 国内直连，LLM 质量兜底源。
+    QJsonObject zhipu = providerDefault(false);
+    zhipu.insert(QStringLiteral("baseUrl"),
+                 QStringLiteral("https://open.bigmodel.cn/api/paas/v4"));
+    zhipu.insert(QStringLiteral("apiKey"), QString());
+    zhipu.insert(QStringLiteral("model"), QStringLiteral("glm-4-flash"));
+    providers.insert(QStringLiteral("zhipu"), zhipu);
+
     QJsonObject deeplx = providerDefault(false);
     deeplx.insert(QStringLiteral("baseUrl"), QString());
     providers.insert(QStringLiteral("deeplx"), deeplx);
-
-    QJsonObject lingva = providerDefault(false);
-    lingva.insert(QStringLiteral("baseUrl"), QStringLiteral("https://lingva.ml"));
-    providers.insert(QStringLiteral("lingva"), lingva);
 
     root.insert(QStringLiteral("providers"), providers);
 
@@ -322,30 +327,81 @@ void ConfigManager::load()
             qInfo().noquote() << QStringLiteral(
                 "[config] v3->v4 migrate: ui.font added (default 11pt/theme)");
         }
-        // 2026-08 免密钥新源补全：老配置的 providers 子对象会在 merge 阶段
-        // 整体覆盖 defaults，新 provider 块补不进来，故在 loaded 上就地补齐：
-        // 缺 volcano/mymemory 配置块则按默认新增，并把缺失的名字插到 order
-        // 最前（火山直连快，置顶可避开已失效的 bing/需翻墙的 google）。
+        // 2026-08 免密钥源洗牌：老配置的 providers 子对象会在 merge 阶段
+        // 整体覆盖 defaults，新默认值补不进来，故在 loaded 上就地改写：
+        // - order 移除已死的 volcano（火山 crx 端点全语言 Bad Request）与
+        //   lingva（lingva.ml 被 Cloudflare 人机验证拦截）；
+        // - bing 提到最前并启用（Bing 网页版 ttranslatev3，国内直连免密钥）；
+        // - google 默认禁用（需翻墙，未挂代理时每次 3s 超时拖慢链路）。
         // 不写回 version：config_atomic_test 的 version 契约保持不变。
         {
             QJsonObject prov = loaded.value(QStringLiteral("providers")).toObject();
             QJsonArray order = prov.value(QStringLiteral("order")).toArray();
+            QStringList orderList;
+            for (const QJsonValue &v : order)
+                orderList.append(v.toString());
+
             bool changed = false;
-            const char *newcomers[] = {"volcano", "mymemory"};
-            for (const char *nm_ : newcomers) {
-                const QString nm = QString::fromLatin1(nm_);
-                if (!prov.contains(nm)) {
-                    prov.insert(nm, providerDefault(true));
-                    order.prepend(QJsonValue(nm));
-                    changed = true;
-                }
+            changed |= (orderList.removeAll(QStringLiteral("volcano")) > 0);
+            changed |= (orderList.removeAll(QStringLiteral("lingva")) > 0);
+
+            // bing 强制提到最前（无论是否已在列表）。
+            orderList.removeAll(QStringLiteral("bing"));
+            orderList.prepend(QStringLiteral("bing"));
+            changed = true;
+
+            QJsonObject bing = prov.value(QStringLiteral("bing")).toObject();
+            if (!bing.value(QStringLiteral("enabled")).toBool(true)) {
+                bing.insert(QStringLiteral("enabled"), true);
+                prov.insert(QStringLiteral("bing"), bing);
+                changed = true;
             }
+
+            QJsonObject google = prov.value(QStringLiteral("google")).toObject();
+            if (google.value(QStringLiteral("enabled")).toBool(false)) {
+                google.insert(QStringLiteral("enabled"), false);
+                prov.insert(QStringLiteral("google"), google);
+                changed = true;
+            }
+
+            // 智谱 GLM-4-Flash（永久免费 + 国内直连）：老配置缺块时补默认，
+            // order 追加到 openai 之后。
+            if (!prov.contains(QStringLiteral("zhipu"))) {
+                QJsonObject zhipu;
+                zhipu.insert(QStringLiteral("enabled"), false);
+                zhipu.insert(QStringLiteral("baseUrl"),
+                             QStringLiteral("https://open.bigmodel.cn/api/paas/v4"));
+                zhipu.insert(QStringLiteral("apiKey"), QString());
+                zhipu.insert(QStringLiteral("model"), QStringLiteral("glm-4-flash"));
+                prov.insert(QStringLiteral("zhipu"), zhipu);
+                changed = true;
+            }
+            if (!orderList.contains(QStringLiteral("zhipu"))) {
+                const int idx = orderList.indexOf(QStringLiteral("openai"));
+                orderList.insert(idx >= 0 ? idx + 1 : orderList.size(),
+                                 QStringLiteral("zhipu"));
+                changed = true;
+            }
+
+            // 死源配置块就地清理，避免设置页残留无效条目。
+            if (prov.contains(QStringLiteral("volcano"))) {
+                prov.remove(QStringLiteral("volcano"));
+                changed = true;
+            }
+            if (prov.contains(QStringLiteral("lingva"))) {
+                prov.remove(QStringLiteral("lingva"));
+                changed = true;
+            }
+
             if (changed) {
-                prov.insert(QStringLiteral("order"), order);
+                QJsonArray newOrder;
+                for (const QString &n : orderList)
+                    newOrder.append(n);
+                prov.insert(QStringLiteral("order"), newOrder);
                 loaded.insert(QStringLiteral("providers"), prov);
                 qInfo().noquote() << QStringLiteral(
-                    "[config] providers migrate: volcano/mymemory added "
-                    "(Bing free endpoint decommissioned, HTTP 404)");
+                    "[config] providers migrate: bing to front & enabled, "
+                    "volcano/lingva dropped, google disabled (needs proxy)");
             }
         }
     }

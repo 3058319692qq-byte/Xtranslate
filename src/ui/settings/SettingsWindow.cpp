@@ -70,11 +70,13 @@ QList<FieldSpec> fieldsFor(const QString &provider)
         return {{"baseUrl", QT_TRANSLATE_NOOP("SettingsWindow", "接口地址"), false},
                 {"apiKey", QT_TRANSLATE_NOOP("SettingsWindow", "API Key"), true},
                 {"model", QT_TRANSLATE_NOOP("SettingsWindow", "模型"), false}};
+    if (provider == QLatin1String("zhipu"))
+        return {{"apiKey", QT_TRANSLATE_NOOP("SettingsWindow", "API Key"), true},
+                {"baseUrl", QT_TRANSLATE_NOOP("SettingsWindow", "接口地址"), false},
+                {"model", QT_TRANSLATE_NOOP("SettingsWindow", "模型"), false}};
     if (provider == QLatin1String("deeplx"))
         return {{"baseUrl", QT_TRANSLATE_NOOP("SettingsWindow", "接口地址"), false}};
-    if (provider == QLatin1String("lingva"))
-        return {{"baseUrl", QT_TRANSLATE_NOOP("SettingsWindow", "实例地址"), false}};
-    return {}; // google / bing / volcano / mymemory: key-free
+    return {}; // google / bing / mymemory: key-free
 }
 
 QLabel *makePageTitle(const QString &text, QWidget *parent)
@@ -532,7 +534,6 @@ void SettingsWindow::restoreDefaultHotkeys()
 QString SettingsWindow::providerDisplayName(const QString &name)
 {
     if (name == QLatin1String("google")) return tr("Google（免费）");
-    if (name == QLatin1String("volcano")) return tr("火山翻译（免费）");
     if (name == QLatin1String("mymemory")) return tr("MyMemory（免费）");
     if (name == QLatin1String("bing"))   return tr("Bing（免费）");
     if (name == QLatin1String("deepl"))  return QStringLiteral("DeepL");
@@ -540,8 +541,8 @@ QString SettingsWindow::providerDisplayName(const QString &name)
     if (name == QLatin1String("youdao")) return tr("有道智云");
     if (name == QLatin1String("tencent")) return tr("腾讯云 TMT");
     if (name == QLatin1String("openai")) return tr("OpenAI 兼容");
+    if (name == QLatin1String("zhipu")) return tr("智谱 GLM（免费）");
     if (name == QLatin1String("deeplx")) return QStringLiteral("DeepLX");
-    if (name == QLatin1String("lingva")) return QStringLiteral("Lingva");
     return name;
 }
 

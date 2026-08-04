@@ -94,12 +94,11 @@ add_executable(XTranslate WIN32
     src/core/translate/providers/BaiduTranslator.cpp
     src/core/translate/providers/DeepLTranslator.cpp
     src/core/translate/providers/DeepLxTranslator.cpp
-    src/core/translate/providers/LingvaTranslator.cpp
     src/core/translate/providers/MyMemoryTranslator.cpp
     src/core/translate/providers/OpenAiCompatTranslator.cpp
     src/core/translate/providers/TencentTranslator.cpp
-    src/core/translate/providers/VolcanoTranslator.cpp
     src/core/translate/providers/YoudaoTranslator.cpp
+    src/core/translate/providers/ZhipuTranslator.cpp
     src/core/tts/EdgeTtsProvider.cpp
     src/core/tts/TtsManager.cpp
     src/ui/MainWindow.cpp

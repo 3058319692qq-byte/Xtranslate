@@ -230,10 +230,19 @@ int runTranslate(const QStringList &args)
     // Phase 6-tuning：强制 proxy=system 还原 Phase 1-3 系统代理行为，
     // 并强制 provider=google 验证 Google 真可达（而非 mock 兜底误判 pass）。
     // 用 setValue 触发 configChanged 信号让 TranslationManager 重新 apply 代理。
-    // 2026-08：第 4 个可选参数指定 provider（默认 google，契约不变），
-    // 便于验证新接入的免密钥源（volcano/mymemory 等）。
-    const QString forcedProvider =
-        args.value(3, QStringLiteral("google"));
+    // 2026-08：第 4 个可选参数指定 provider（默认取配置中第一个启用的
+    // provider，google 不可达时自动落到 bing 等免密钥源），便于验证
+    // 新接入的免密钥源（bing/mymemory 等）。
+    QString defProvider = QStringLiteral("google");
+    const QStringList order = ConfigManager::instance().providerOrder();
+    for (const QString &n : order) {
+        if (ConfigManager::instance().providerConfig(n)
+                .value(QStringLiteral("enabled")).toBool()) {
+            defProvider = n;
+            break;
+        }
+    }
+    const QString forcedProvider = args.value(3, defProvider);
     ConfigManager::instance().setValue(QStringLiteral("proxy.mode"),
                                        QStringLiteral("system"));
 

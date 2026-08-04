@@ -351,7 +351,7 @@
         <translation type="unfinished">设置</translation>
     </message>
     <message>
-        <source>火山翻译</source>
+        <source>智谱 GLM</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -504,7 +504,7 @@
     </message>
     <message>
         <source>实例地址</source>
-        <translation>实例地址</translation>
+        <translation type="vanished">实例地址</translation>
     </message>
     <message>
         <source>设置 - X翻译</source>
@@ -957,11 +957,11 @@
         <translation>本机没有可用的系统语音引擎；云端（Edge）引擎仍可用，但失败时无法回退本机嗓音。</translation>
     </message>
     <message>
-        <source>火山翻译（免费）</source>
+        <source>MyMemory（免费）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>MyMemory（免费）</source>
+        <source>智谱 GLM（免费）</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
